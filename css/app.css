@@ -267,3 +267,32 @@ details.tp summary { cursor: pointer; font-weight: 600; color: var(--petrol); pa
 .knopf svg { width: 18px; height: 18px; flex: none; }
 .kuerzel svg, .station .nr svg { width: 20px; height: 20px; }
 .pfeil svg { width: 20px; height: 20px; display: block; }
+
+/* ---------- Version 1.1: Antrag als Prozess ---------- */
+.hinweis.pruef { background: var(--gelb-hell); border-left-color: #e0a800; }
+.reiter a.zu { opacity: .55; }
+.reiter a:not([href]) { cursor: default; }
+.haken { color: var(--gruen); font-weight: 700; }
+.station .nr.fertig { background: var(--gruen); }
+.titel .rechts { flex: none; padding-top: 3px; }
+.schritt { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--petrol); color: #fff; font-size: .85rem; font-weight: 700; margin-right: 6px; vertical-align: 1px; }
+.schritt.fertig { background: var(--gruen); }
+.karte.blass { opacity: .6; }
+button.wahlzeile { width: 100%; background: none; border: 0; text-align: left; cursor: pointer; padding-left: 0; padding-right: 0; }
+.produkte { display: grid; gap: 10px; grid-template-columns: 1fr; }
+@media (min-width: 700px) { .produkte { grid-template-columns: repeat(3, 1fr); } }
+.produkt { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 14px; border: 2px solid var(--blass); border-radius: var(--radius); background: var(--weiss); cursor: pointer; min-height: 110px; }
+.produkt b { color: var(--petrol-dunkel); }
+.produkt span { font-size: .88rem; }
+.produkt.aktiv { border-color: var(--petrol); background: var(--blass-hell); }
+.produkt.zu { border-style: dashed; color: var(--grau); background: var(--flaeche); }
+.produkt.zu b { color: var(--grau); }
+.haken-zeile { display: flex; gap: 11px; align-items: flex-start; padding: 9px 0; border-top: 1px solid var(--linie); cursor: pointer; font-size: .95rem; }
+.haken-zeile:first-of-type { border-top: 0; }
+.haken-zeile input { width: 22px; height: 22px; flex: none; margin: 1px 0 0; accent-color: var(--petrol); }
+.schnell { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 10px 16px 14px; border-top: 1px solid var(--linie); }
+.schnell a { font-size: .8rem; font-weight: 600; text-decoration: none; padding: 5px 10px; border-radius: 20px; background: var(--blass-hell); color: var(--petrol-dunkel); }
+.schnell a.fertig { background: var(--gruen-hell); color: #3d6b12; }
+.schnell a.code, .schnell a.vorher { opacity: .55; }
+.rechen td.kd { color: var(--grau); width: 108px; }
+@media (max-width: 520px) { .rechen td.kd, .rechen th { font-size: .78rem; } .rechen td.kd { width: 74px; padding-left: 2px; } .rechen th { white-space: normal; padding: 8px 6px; } .rechen td.eingabe { width: 100px; } }

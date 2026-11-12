@@ -14,7 +14,7 @@
 
 window.SB = {
 
-  version: '1.0.0',
+  version: '1.1.0',
   heute: '2026-11-11',            // „Systemdatum“ der Bank (Stand der Daten)
 
   /* ---------------------------------------------------------------- BANK */
@@ -169,7 +169,43 @@ window.SB = {
     { id: 'rechner',   titel: 'Kreditrechner (selbst rechnen)', hash: 'f5c5817b24b73671206954137cf2c59e8c88bb0de837f0a9374dad5de93047fd',
       frei: ['rechner'], fahrplan: 3 },
     { id: 'rechner2',  titel: 'Kreditrechner (Beratertool, Tilgungsplan, Spielwiese)', hash: '3f95047bc434c7d5ae20db1491d7452097f3e1eaa4238141927bdf02755b4022',
-      frei: ['rechner', 'rechner-tool'], fahrplan: 3 }
+      frei: ['rechner', 'rechner-tool'], fahrplan: 3 },
+    { id: 'votum',     titel: 'Kreditentscheidung (Votum)', hash: '0afdc5e4b11e4861d7766876908578fe5c70f6ab57bec7cb169fde0521a31507',
+      frei: ['votum'], fahrplan: 3 }
+  ],
+
+  /* ------------------------------------------------------- STUNDEN-EINSTIEGE
+     Ein Einstiegscode bringt ein Gerät auf den Stand „bis hierhin erledigt“,
+     damit ein Team nach Fehlen oder Gerätewechsel nicht alles neu eintippen muss.
+     „stand“ nennt die Schritte, die mit dem Musterstand gefüllt werden
+     (bereits abgeschlossene Stationen bleiben unverändert).
+     „frei“ nennt die Funktionen, die dabei mit geöffnet werden.              */
+  einstiege: [
+    { titel: 'Einstieg: Selbstauskunft ist erfasst', hash: '097950117b9cafcfcb1d277897820223fbc5e103d3d907cacc0a022247f8fdaf',
+      stand: ['antrag', 'selbstauskunft'], frei: ['selbstauskunft', 'dokumente', 'umsaetze', 'post-termin'] },
+    { titel: 'Einstieg: Auskunft ist abgerufen', hash: '769da0be4bae711b1f6b96d3447aa05474b9d134faea4fe51dc3ba2120deab34',
+      stand: ['antrag', 'selbstauskunft', 'auskunftei'], frei: ['selbstauskunft', 'dokumente', 'umsaetze', 'post-termin', 'auskunftei', 'post-auskunft'] },
+    { titel: 'Einstieg: Haushaltsrechnung ist fertig', hash: 'e80c3db78dc6425897bd915d820a9668a21445f99c436c7692c781219410f19b',
+      stand: ['antrag', 'selbstauskunft', 'auskunftei', 'haushalt'], frei: ['selbstauskunft', 'dokumente', 'umsaetze', 'post-termin', 'auskunftei', 'post-auskunft', 'haushalt'] },
+    { titel: 'Einstieg: Kreditrechner ist fertig', hash: '05fe3916cf7e0d976882674d04c9df3bf11253dd72d06d8cec10b89b42f47276',
+      stand: ['antrag', 'selbstauskunft', 'auskunftei', 'haushalt', 'rechner'], frei: ['selbstauskunft', 'dokumente', 'umsaetze', 'post-termin', 'auskunftei', 'post-auskunft', 'haushalt', 'rechner'] }
+  ],
+
+  /* ------------------------------------------------------------- PRODUKTE
+     Auswahl beim Anlegen eines Kreditantrags. „gesperrt“: sichtbar, aber nicht wählbar. */
+  produkte: [
+    { id: 'kredit', name: 'SchlossKredit', art: 'Allgemein-Verbraucherdarlehen (Ratenkredit)',
+      text: '1.000 € bis 75.000 €, 12 bis 96 Monate, gebundener Sollzins. Auch als SchlossKredit Auto.' },
+    { id: 'bau', name: 'SchlossBaufinanzierung', art: 'Immobiliar-Verbraucherdarlehen', gesperrt: 'Nur für das Team Baufinanzierung' },
+    { id: 'leasing', name: 'SchlossLeasing', art: 'Kfz-Leasing über Partner', gesperrt: 'Für Sie noch nicht freigegeben' }
+  ],
+  antragsnummer: 'KA-2026-004417',
+  // Unterlagen, die für den Antrag vorliegen müssen (zum Abhaken im Kreditantrag)
+  unterlagen: [
+    ['sa', 'Selbstauskunft PK-07, unterschrieben'],
+    ['gehalt', 'Gehaltsabrechnungen der letzten 3 Monate'],
+    ['ausweis', 'Personalausweis im Original geprüft'],
+    ['miete', 'Mietvertrag']
   ],
   lehrkraftHash: '4bd5360ed5b01b0d0eecef612e8aefe0cdb3b8709ca9750b8da6713c0efdb188',
 
@@ -225,6 +261,19 @@ window.SB = {
       ]
     },
     {
+      id: 'recht', frei: 'post-auskunft', von: 'Dr. Miriam Vogt', rolle: 'Rechtsabteilung', kuerzel: 'MV',
+      datum: '2026-11-20', zeit: '08:30', betreff: 'Neues Verbraucherkreditrecht gilt ab heute',
+      text: [
+        'Liebe Kolleginnen und Kollegen in der Kreditberatung,',
+        'seit heute, 20.11.2026, gilt das neue Verbraucherkreditrecht. Es gilt für alle Verträge, die ab heute geschlossen werden.',
+        'Für Ihre tägliche Arbeit besonders wichtig: „Später bezahlen“ und Ratenkäufe über Zahlungsdienste (Buy now, pay later) gelten jetzt als Verbraucherkredite. Das gilt auch für kleine Beträge und für zinsfreie Angebote.',
+        'Behandeln Sie solche Ratenpläne in der Kreditprüfung deshalb wie jeden anderen bestehenden Kredit.',
+        'Bei Fragen zum neuen Recht erreichen Sie uns unter der Durchwahl -340.',
+        'Viele Grüße',
+        'Dr. Miriam Vogt'
+      ]
+    },
+    {
       id: 'sprachnachricht', frei: 'post-auskunft', von: 'Sophie Keller', rolle: 'Kundin · Sprachnachricht (Abschrift)', kuerzel: 'SK', kunde: 'sophie',
       datum: '2026-12-01', zeit: '18:05', betreff: 'Sprachnachricht: Steht mein Dispo da drin?',
       text: [
@@ -252,9 +301,14 @@ window.SB = {
           ['Anschrift', 'Hanauer Straße 27, 63755 Alzenau'], ['wohnhaft seit', '06/2025'],
           ['Telefon', '0151 5550 1486'], ['E-Mail', 's.keller@postfach-beispiel.de'], ['Postfach SchlossBanking', 'aktiv']
         ]],
-        ['Beruf', [
-          ['Beruf', 'Pflegefachfrau'], ['Arbeitgeber', 'Kahlgrund-Klinikum Alzenau'],
-          ['beschäftigt seit', '09/2019 (Ausbildung), 09/2022 (Festanstellung)'], ['Stand der Angaben', '09/2022']
+        ['Haushalt', [
+          ['Wohnsituation', 'bei den Eltern'], ['Personen im Haushalt', '3'], ['unterhaltsberechtigte Kinder', '0'],
+          ['Stand der Angaben', '09/2019']
+        ]],
+        ['Beruf und Einkommen', [
+          ['Beruf', 'Auszubildende'], ['Arbeitgeber', 'Kreiskrankenhaus Alzenau'],
+          ['Arbeitsverhältnis', 'befristet (Ausbildungsvertrag bis 08/2022)'], ['beschäftigt seit', '09/2019'],
+          ['Nettoeinkommen', 'nicht erfasst'], ['Stand der Angaben', '09/2019']
         ]]
       ],
 
@@ -266,15 +320,16 @@ window.SB = {
         { id: 'karte', name: 'SchlossCard', art: 'Debitkarte', details: [['Status', 'aktiv'], ['Tageslimit', '1.000,00 €']] }
       ],
 
-      // Hinweisbox in der Kundenübersicht. „frei“: Hinweis erscheint erst nach dieser Freischaltung.
+      /* Hinweise in der Kundenübersicht. art: 'info' | 'pruef' (Prüfauftrag) | 'impuls' (Vertriebsimpuls).
+         Prüfaufträge sagen nur, WAS zu prüfen ist. Das Ergebnis finden die Beraterinnen und Berater selbst.
+         „frei“: Hinweis erscheint erst nach dieser Freischaltung.                                          */
       hinweise: [
         { art: 'info',    text: 'Offene Kreditanfrage vom 10.11.2026 über das Postfach (Autofinanzierung).' },
-        { art: 'luecke',  text: 'Datenlücke: Einkommens- und Arbeitgeberangaben zuletzt 09/2022 aktualisiert.' },
-        { art: 'luecke',  text: 'Datenlücke: Personen im Haushalt nicht erfasst (Adressänderung 06/2025).' },
-        { art: 'signal',  frei: 'umsaetze', text: 'Signal: Dispositionskredit im September 2026 an 7 Tagen genutzt (höchster Sollstand 204,13 €).' },
-        { art: 'signal',  frei: 'umsaetze', text: 'Signal: regelmäßige Lastschriften eines Zahlungsdienstes („Später bezahlen“), 2 laufende Ratenpläne.' },
-        { art: 'impuls',  text: 'Vertriebsimpuls: keine Absicherung der Arbeitskraft (Berufsunfähigkeit) bekannt.' },
-        { art: 'impuls',  text: 'Vertriebsimpuls: bei Autokauf Kfz-Versicherung über Partner anbieten.' }
+        { art: 'pruef',   text: 'Prüfauftrag: Stammdaten vor der Antragstellung auf Vollständigkeit und Aktualität prüfen.' },
+        { art: 'pruef',   frei: 'umsaetze', text: 'Prüfauftrag: Kontoführung der letzten drei Monate prüfen.' },
+        { art: 'pruef',   frei: 'dokumente', text: 'Prüfauftrag: Angaben der Selbstauskunft mit den Nachweisen abgleichen.' },
+        { art: 'impuls',  text: 'Absicherung der Arbeitskraft (Berufsunfähigkeit) ansprechen.' },
+        { art: 'impuls',  text: 'Bei Autokauf Kfz-Versicherung über Partner anbieten.' }
       ],
 
       // Kundenakte: Kontakthistorie (neueste zuerst)
@@ -282,7 +337,7 @@ window.SB = {
         { datum: '2026-11-10', kanal: 'Postfach', wer: 'Kundin', text: 'Kreditanfrage Autofinanzierung, Wunsch nach Beratungstermin (werktags ab 15:30 Uhr).' },
         { datum: '2025-06-16', kanal: 'App', wer: 'Kundin', text: 'Adressänderung: Umzug nach Alzenau, Hanauer Straße 27.' },
         { datum: '2024-03-08', kanal: 'Filiale Alzenau', wer: 'C. Seidel', text: 'SchlossTagesgeld eröffnet, Dauerauftrag 100 € monatlich. Kundin möchte Rücklagen aufbauen.' },
-        { datum: '2022-09-12', kanal: 'Filiale Alzenau', wer: 'C. Seidel', text: 'Ausbildung abgeschlossen, unbefristete Übernahme als Pflegefachfrau. Umstellung auf SchlossKonto Online, Dispositionskredit 2.000 € eingeräumt. Absicherung Berufsunfähigkeit angesprochen, Kundin möchte später darauf zurückkommen.' },
+        { datum: '2022-09-12', kanal: 'Filiale Alzenau', wer: 'C. Seidel', text: 'Ausbildung abgeschlossen, unbefristete Übernahme als Pflegefachfrau (Haus heißt jetzt Kahlgrund-Klinikum). Umstellung auf SchlossKonto Online, Dispositionskredit 2.000 € eingeräumt. Absicherung Berufsunfähigkeit angesprochen, Kundin möchte später darauf zurückkommen.' },
         { datum: '2019-09-02', kanal: 'Filiale Alzenau', wer: 'C. Seidel', text: 'Kontoeröffnung SchlossKonto Junge Leute zum Ausbildungsbeginn. Legitimation per Personalausweis.' }
       ],
 
@@ -402,60 +457,70 @@ window.SB = {
         { feld: 'kfz', op: 'kleiner', wert: 230, text: 'Kfz-Kosten: erfasst sind {x}. Die Richtlinie sieht für einen Kleinwagen eine Pauschale von 230,00 € vor.' }
       ],
 
-      // Auskunftei (Muster). Im echten Bankbetrieb wäre das die SCHUFA.
+      /* Auskunftei (Muster). Im echten Bankbetrieb wäre das die SCHUFA.
+         Die Auskunft zeigt nur Einträge und den Scorewert. Sie deutet nichts:
+         Die Auswertung ist Aufgabe der Beraterinnen und Berater.                */
       auskunftei: {
-        abfrage: '2026-12-01', wert: '94,8 %', einstufung: 'gut – geringes bis überschaubares Risiko',
+        abfrage: '2026-12-01', grund: 'Kreditanfrage (Ratenkredit)',
+        scorewert: 742, skala: 'Skala von 100 bis 999 Punkten',
         eintraege: [
-          ['Girokonto', 'Schlossbank Aschaffenburg AG', 'seit 09/2019', 'Dispositionsrahmen 2.000 €, vertragsgemäß'],
-          ['Debitkarte', 'Schlossbank Aschaffenburg AG', 'seit 09/2019', 'vertragsgemäß'],
-          ['Mobilfunkvertrag', 'TeleMain Mobilfunk GmbH', 'seit 03/2021', 'vertragsgemäß'],
-          ['Ratenzahlungskonto', 'SpäterZahlen GmbH', 'seit 05/2025', 'Rahmen 1.500 €, 2 laufende Ratenpläne, vertragsgemäß'],
-          ['Rechnungskauf / Ratenkauf', 'KaufJetzt Pay AG', 'seit 02/2026', 'Rahmen 750 €, derzeit nicht genutzt']
+          ['Girokonto', 'Schlossbank Aschaffenburg AG', '09/2019', 'Dispositionsrahmen 2.000 €', 'vertragsgemäß'],
+          ['Debitkarte', 'Schlossbank Aschaffenburg AG', '09/2019', '', 'vertragsgemäß'],
+          ['Mobilfunkvertrag', 'TeleMain Mobilfunk GmbH', '03/2021', '', 'vertragsgemäß'],
+          ['Ratenzahlungskonto', 'SpäterZahlen GmbH', '05/2025', 'Rahmen 1.500 €, 2 laufende Ratenpläne', 'vertragsgemäß'],
+          ['Rechnungskauf / Ratenkauf', 'KaufJetzt Pay AG', '02/2026', 'Rahmen 750 €, Saldo 0 €', 'vertragsgemäß']
         ],
-        negativ: 'Keine Negativmerkmale gespeichert.',
-        anfragen: 'Keine Kreditanfragen anderer Banken in den letzten 12 Monaten.',
-        nichtEnthalten: 'Nicht gespeichert sind: Einkommen, Kontostände, einzelne Kontoumsätze und die Nutzung des Dispositionskredits innerhalb des Rahmens.'
+        anfragen: [
+          ['01.12.2026', 'Schlossbank Aschaffenburg AG', 'Anfrage Kreditkonditionen']
+        ]
       },
 
+      // Musterstand für die Stunden-Einstiege (siehe „einstiege“ oben)
+      musterstand: { rechner: { betrag: '12500', laufzeit: '48', rk: 'B', auto: true } },
+
       /* Haushaltsrechnung: erwartete Werte für die Kontrolle im Modus „Selbst rechnen“.
-         soll = richtiger Betrag, t1 = erster Hinweis (Denkanstoß), t2 = zweiter Hinweis (Lösungsweg). */
+         soll = richtiger Betrag (Bankansatz), t1 = erster Hinweis (Denkanstoß), t2 = zweiter Hinweis (Lösungsweg).
+         sa = Felder der Selbstauskunft, die in der Spalte „Kundenangabe“ erscheinen.                    */
       haushalt: {
         zeilen: [
-          { id: 'gehalt', gruppe: 'ein', label: 'Nettogehalt (regelmäßig, nachgewiesen)', soll: 2250,
+          { id: 'gehalt', sa: ['gehalt'], gruppe: 'ein', label: 'Nettogehalt (regelmäßig, nachgewiesen)', soll: 2250,
             t1: 'Vergleichen Sie Selbstauskunft, Gehaltsabrechnungen und Gehaltseingänge. Welcher Betrag kommt jeden Monat sicher?',
             t2: 'Angesetzt wird das feste Nettogehalt laut Gehaltsabrechnung: 2.250,00 €. In der Selbstauskunft hat Frau Keller die Zuschläge mit eingerechnet.' },
-          { id: 'zulagen', gruppe: 'ein', label: 'Zulagen, Nebeneinkünfte (dauerhaft gesichert)', soll: 0,
+          { id: 'zulagen', sa: ['zulagen'], gruppe: 'ein', label: 'Zulagen, Nebeneinkünfte (dauerhaft gesichert)', soll: 0,
             t1: 'Sind die Schichtzuschläge jeden Monat gleich hoch? Was sagt die Richtlinie dazu?',
             t2: 'Die Zuschläge schwanken (180 €, 310 €, 220 €). Nach der Richtlinie bleiben sie außer Ansatz: 0,00 €.' },
-          { id: 'sonstEin', gruppe: 'ein', label: 'Sonstige Einnahmen (Kindergeld, Unterhalt …)', soll: 0,
+          { id: 'sonstEin', sa: ['kindergeld', 'sonstEin'], gruppe: 'ein', label: 'Sonstige Einnahmen (Kindergeld, Unterhalt …)', soll: 0,
             t1: 'Ist die monatliche Gutschrift von Paul Neumann ein Einkommen von Frau Keller?',
             t2: 'Pauls 480 € sind sein Anteil an der Miete, kein Einkommen. Berücksichtigt wird das bei der Miete: 0,00 €.' },
-          { id: 'miete', gruppe: 'aus', label: 'Warmmiete (eigener Anteil)', soll: 480,
+          { id: 'miete', sa: ['miete'], gruppe: 'aus', label: 'Warmmiete (eigener Anteil)', soll: 480,
             t1: 'Wie viel von den 960 € trägt Frau Keller am Ende selbst? Schauen Sie auf die Gutschriften.',
             t2: 'Dauerauftrag 960 € abzüglich Pauls Anteil 480 € ergibt den eigenen Anteil: 480,00 €.' },
-          { id: 'pauschale', gruppe: 'aus', label: 'Lebenshaltung (Pauschale laut Richtlinie)', soll: 800,
+          { id: 'pauschale', sa: [], gruppe: 'aus', label: 'Lebenshaltung (Pauschale laut Richtlinie)', soll: 800,
             t1: 'Die Pauschale steht in der Richtlinie Haushaltsrechnung unter „Unsere Bank“. Wie viele Personen stehen im Antrag?',
             t2: 'Antragstellerin ist nur Frau Keller: Pauschale für die erste erwachsene Person 800,00 €.' },
-          { id: 'versicherung', gruppe: 'aus', label: 'Versicherungen', soll: 40,
+          { id: 'versicherung', sa: ['versicherungen'], gruppe: 'aus', label: 'Versicherungen', soll: 40,
             t1: 'Suchen Sie in den Umsätzen nach Versicherungsbeiträgen.',
             t2: 'Privathaftpflicht und Hausrat bei der Untermain Versicherung AG: 40,00 € im Monat.' },
-          { id: 'telefon', gruppe: 'aus', label: 'Telefon, Mobilfunk, Internet', soll: 45,
+          { id: 'telefon', sa: ['telefonKosten'], gruppe: 'aus', label: 'Telefon, Mobilfunk, Internet', soll: 45,
             t1: 'Stimmt die Angabe in der Selbstauskunft mit den Lastschriften überein?',
             t2: 'In der Selbstauskunft fehlt der Mobilfunkvertrag: 45,00 € im Monat. Streaming ist mit der Pauschale abgedeckt.' },
-          { id: 'kfz', gruppe: 'aus', label: 'Kfz-Kosten (künftiges Auto)', soll: 230,
+          { id: 'kfz', sa: ['kfz'], gruppe: 'aus', label: 'Kfz-Kosten (künftiges Auto)', soll: 230,
             t1: 'Frau Keller hat noch kein Auto. Was sieht die Richtlinie vor, wenn tatsächliche Kosten fehlen?',
             t2: 'Kfz-Pauschale für einen Kleinwagen laut Richtlinie: 230,00 € (statt der geschätzten 200 €).' },
-          { id: 'raten', gruppe: 'aus', label: 'Raten für bestehende Kredite, Leasing', soll: 0,
+          { id: 'raten', sa: ['raten'], gruppe: 'aus', label: 'Raten für bestehende Kredite, Leasing', soll: 0,
             t1: 'Gibt es in den Unterlagen einen Bankkredit oder Leasingvertrag?',
             t2: 'Es bestehen keine Kredite oder Leasingverträge: 0,00 €.' },
-          { id: 'bnpl', gruppe: 'aus', label: 'Ratenkäufe, „Später bezahlen“', soll: 60,
+          { id: 'bnpl', sa: ['bnpl'], gruppe: 'aus', label: 'Ratenkäufe, „Später bezahlen“', soll: 60,
             t1: 'Die Selbstauskunft nennt hier nichts. Was zeigen die Kontoumsätze Mitte des Monats?',
             t2: 'Zwei laufende Ratenpläne bei der SpäterZahlen GmbH: 34,90 € + 25,10 € = 60,00 € im Monat.' },
-          { id: 'unterhalt', gruppe: 'aus', label: 'Unterhaltszahlungen', soll: 0,
+          { id: 'unterhalt', sa: ['unterhalt'], gruppe: 'aus', label: 'Unterhaltszahlungen', soll: 0,
             t1: 'Hat Frau Keller unterhaltsberechtigte Kinder?', t2: 'Keine Unterhaltspflichten: 0,00 €.' },
-          { id: 'sonstAus', gruppe: 'aus', label: 'Sonstige regelmäßige Ausgaben', soll: 0,
-            t1: 'Fitnessstudio, Streaming, Deutschlandticket, Sparrate: Was davon zählt nach der Richtlinie zusätzlich?',
-            t2: 'Freizeit, Streaming und Nahverkehr deckt die Pauschale ab, die Sparrate ist keine Ausgabe: 0,00 €.' }
+          { id: 'sparen', sa: ['sparen'], gruppe: 'aus', label: 'Spar- und Bausparverträge', soll: 0,
+            t1: 'Ist eine Sparrate eine Ausgabe, die Frau Keller leisten muss? Lesen Sie in der Richtlinie nach.',
+            t2: 'Sparraten sind nach der Richtlinie keine Ausgaben, sie können jederzeit gestoppt werden: 0,00 €.' },
+          { id: 'sonstAus', sa: ['sonstAus'], gruppe: 'aus', label: 'Sonstige regelmäßige Ausgaben', soll: 0,
+            t1: 'Fitnessstudio, Streaming, Deutschlandticket: Was davon zählt nach der Richtlinie zusätzlich?',
+            t2: 'Freizeit, Streaming und Nahverkehr deckt die Pauschale ab: 0,00 €.' }
         ]
       }
     }
