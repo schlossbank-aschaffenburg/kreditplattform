@@ -14,7 +14,7 @@
 
 window.SB = {
 
-  version: '1.1.0',
+  version: '1.2.0',
   heute: '2026-11-11',            // „Systemdatum“ der Bank (Stand der Daten)
 
   /* ---------------------------------------------------------------- BANK */
@@ -138,18 +138,80 @@ window.SB = {
     ]
   },
 
-  /* -------------------------------------------------------------- GLOSSAR */
+  /* -------------------------------------------------------------- GLOSSAR
+     [Begriff, Erklärung, Thema]. Das Glossar ist auch die Quelle der Karteikarten
+     im Training: Ein Begriff erscheint dort, sobald sein Thema geöffnet ist
+     (Themen und Daten stehen in training.js; ohne Thema ist der Begriff sofort dabei). */
   glossar: [
-    ['Kreditfähigkeit', 'Die rechtliche Fähigkeit, einen Kreditvertrag wirksam abzuschließen. Voll geschäftsfähig ist, wer 18 Jahre alt ist.'],
-    ['Persönliche Kreditwürdigkeit', 'Die Frage, ob die Kundin oder der Kunde zurückzahlen will: Beruf, Arbeitgeber, bisheriges Zahlungsverhalten.'],
-    ['Wirtschaftliche (materielle) Kreditwürdigkeit', 'Die Frage, ob die Kundin oder der Kunde zurückzahlen kann: Einkommen, Ausgaben, bestehende Kredite, Vermögen.'],
-    ['Selbstauskunft', 'Formular, in dem Kundinnen und Kunden ihre persönlichen und wirtschaftlichen Verhältnisse angeben. Die Bank prüft die Angaben mit Nachweisen.'],
-    ['Haushaltsrechnung', 'Gegenüberstellung der regelmäßigen Einnahmen und Ausgaben. Ergebnis ist das frei verfügbare Einkommen.'],
-    ['Frei verfügbares Einkommen', 'Der Betrag, der nach allen regelmäßigen Ausgaben im Monat übrig bleibt.'],
-    ['Dispositionskredit', 'Eingeräumte Überziehungsmöglichkeit auf dem Girokonto bis zu einem vereinbarten Rahmen.'],
-    ['Geduldete Überziehung', 'Überziehung über den Dispositionsrahmen hinaus oder ohne Rahmen. Sie ist teurer als der Dispositionskredit.'],
-    ['Votum', 'Die begründete Entscheidung für oder gegen einen Kredit. Je nach Betrag und Risikoklasse sind ein oder zwei Voten nötig.'],
-    ['Kompetenz', 'Die Grenze, bis zu der eine Mitarbeiterin oder ein Mitarbeiter allein über Kredite entscheiden darf.']
+    ['Kreditfähigkeit', 'Die rechtliche Fähigkeit, einen Kreditvertrag wirksam abzuschließen. Voll geschäftsfähig ist, wer 18 Jahre alt ist.', 'antrag'],
+    ['Persönliche Kreditwürdigkeit', 'Die Frage, ob die Kundin oder der Kunde zurückzahlen will: Beruf, Arbeitgeber, bisheriges Zahlungsverhalten.', 'antrag'],
+    ['Wirtschaftliche (materielle) Kreditwürdigkeit', 'Die Frage, ob die Kundin oder der Kunde zurückzahlen kann: Einkommen, Ausgaben, bestehende Kredite, Vermögen.', 'antrag'],
+    ['Selbstauskunft', 'Formular, in dem Kundinnen und Kunden ihre persönlichen und wirtschaftlichen Verhältnisse angeben. Die Bank prüft die Angaben mit Nachweisen.', 'antrag'],
+    ['Allgemein-Verbraucherdarlehen', 'Kredit an eine Privatperson, der nicht durch ein Grundpfandrecht gesichert ist und nicht dem Kauf einer Immobilie dient. Der Ratenkredit ist das wichtigste Beispiel.', 'antrag'],
+    ['Nettodarlehensbetrag', 'Der Betrag, der an die Kundin oder den Kunden ausgezahlt wird.', 'antrag'],
+    ['Auskunftei', 'Unternehmen, das Daten über Verträge und Zahlungsverhalten sammelt und an Vertragspartner weitergibt. Die bekannteste Auskunftei in Deutschland ist die SCHUFA.', 'auskunftei'],
+    ['Positivmerkmal', 'Eintrag über einen Vertrag, der vertragsgemäß läuft oder beendet wurde, zum Beispiel ein Girokonto oder ein ordentlich zurückgezahlter Kredit.', 'auskunftei'],
+    ['Negativmerkmal', 'Eintrag über nicht vertragsgemäßes Verhalten, zum Beispiel ein wegen Zahlungsverzugs gekündigter Kredit.', 'auskunftei'],
+    ['Scorewert', 'Zahl, die ausdrückt, wie wahrscheinlich eine Person ihre Zahlungen erfüllt. Der SCHUFA-Score reicht von 100 bis 999 Punkten, ein höherer Wert ist besser.', 'auskunftei'],
+    ['Datenkopie', 'Kostenlose Auskunft über die eigenen gespeicherten Daten nach Art. 15 DSGVO.', 'auskunftei'],
+    ['„Später bezahlen“ (Buy now, pay later)', 'Kauf auf Rechnung oder in Raten über einen Zahlungsdienst. Gilt seit dem 20.11.2026 als Verbraucherkredit.', 'auskunftei'],
+    ['Haushaltsrechnung', 'Gegenüberstellung der regelmäßigen Einnahmen und Ausgaben. Ergebnis ist das frei verfügbare Einkommen.', 'haushalt'],
+    ['Frei verfügbares Einkommen', 'Der Betrag, der nach allen regelmäßigen Ausgaben im Monat übrig bleibt.', 'haushalt'],
+    ['Lebenshaltungspauschale', 'Fester Betrag, den die Bank für Lebensmittel, Kleidung, Freizeit und Ähnliches ansetzt, statt einzelne Ausgaben zu erfragen.', 'haushalt'],
+    ['Dispositionskredit', 'Eingeräumte Überziehungsmöglichkeit auf dem Girokonto bis zu einem vereinbarten Rahmen.', 'haushalt'],
+    ['Geduldete Überziehung', 'Überziehung über den Dispositionsrahmen hinaus oder ohne Rahmen. Sie ist teurer als der Dispositionskredit.', 'haushalt'],
+    ['Scoring', 'Verfahren, das aus Merkmalen einer Person und ihres Antrags eine Punktzahl bildet und daraus das Ausfallrisiko schätzt.', 'entscheidung'],
+    ['Risikoklasse', 'Einstufung eines Kreditantrags nach seinem Ausfallrisiko, bei der Schlossbank von A bis E. Sie bestimmt den Zins.', 'entscheidung'],
+    ['Votum', 'Die begründete Entscheidung für oder gegen einen Kredit. Je nach Betrag und Risikoklasse sind ein oder zwei Voten nötig.', 'entscheidung'],
+    ['Zweitvotum', 'Zweite, unabhängige Entscheidung durch das Kreditmanagement, wenn die Kompetenz der Kreditberatung nicht ausreicht.', 'entscheidung'],
+    ['Kompetenz', 'Die Grenze, bis zu der eine Mitarbeiterin oder ein Mitarbeiter allein über Kredite entscheiden darf.', 'entscheidung'],
+    ['Annuität', 'Gleichbleibende Rate aus Zinsen und Tilgung. Der Zinsanteil sinkt mit jeder Rate, der Tilgungsanteil steigt.', 'annuitaet'],
+    ['Tilgung', 'Der Teil der Rate, der die Schuld verringert.', 'annuitaet'],
+    ['Sollzins', 'Der Zins, mit dem die Zinsen auf die Restschuld berechnet werden. „Gebunden“ heißt: Er bleibt über die Laufzeit gleich.', 'annuitaet'],
+    ['Effektiver Jahreszins', 'Die jährlichen Gesamtkosten des Kredits in Prozent. Er berücksichtigt die monatliche Zahlung und weitere Kosten und macht Angebote vergleichbar.', 'annuitaet'],
+    ['Gesamtbetrag', 'Summe aller Zahlungen: Nettodarlehensbetrag plus Zinsen und Kosten.', 'annuitaet']
+  ],
+
+  /* ------------------------------------------------------- BERATERHANDBUCH
+     Das Handbuch wächst mit dem Unterricht: Ein Kapitel erscheint am Datum „ab“.
+     Abschnitte: t = Überschrift, p = Absätze, liste = Aufzählung,
+     tabelle = 'richtlinie' | 'kompetenz' | 'konditionen' (wird aus den Daten oben erzeugt). */
+  handbuch: [
+    { id: 'anfrage', titel: 'Kreditanfrage und Beratungstermin', ab: '2026-11-11', abschnitte: [
+      { t: 'Ihre Rolle', p: ['Sie beraten Privatkundinnen und Privatkunden zu Ratenkrediten, prüfen den Antrag und entscheiden im Rahmen Ihrer Kompetenz. Sie arbeiten für die Kundin und für die Bank: Ein Kredit, den jemand nicht zurückzahlen kann, hilft keinem von beiden.'] },
+      { t: 'Vor dem Termin', liste: ['Kundenübersicht lesen: Stammdaten, Konten, Kundenakte.', 'Prüfen, ob die Stammdaten noch stimmen. Abweichungen im Termin klären und in der Kundenakte vermerken.', 'Der Kundin mitteilen, welche Unterlagen sie mitbringen soll.'] },
+      { t: 'Unterlagen für den Ratenkredit', liste: ['gültiger Personalausweis oder Reisepass', 'Selbstauskunft PK-07', 'Gehaltsabrechnungen der letzten drei Monate', 'Mietvertrag', 'bei Fahrzeugen: Kaufvertrag oder Angebot', 'bei fremdem Gehaltskonto: Kontoauszüge der letzten drei Monate'] }
+    ] },
+    { id: 'antrag', titel: 'Kreditantrag und Selbstauskunft', ab: '2026-11-25', abschnitte: [
+      { t: 'Kreditfähigkeit', p: ['Kreditfähig ist, wer einen Kreditvertrag wirksam abschließen kann. Natürliche Personen müssen voll geschäftsfähig sein, also mindestens 18 Jahre alt. Sie prüfen das mit dem Ausweis.', 'Minderjährige bräuchten die Zustimmung der gesetzlichen Vertreter und die Genehmigung des Familiengerichts. Die Schlossbank vergibt deshalb keine Ratenkredite an Minderjährige.'] },
+      { t: 'Kreditwürdigkeit', p: ['Persönliche Kreditwürdigkeit: Will die Person zurückzahlen? Wirtschaftliche (materielle) Kreditwürdigkeit: Kann die Person zurückzahlen?'] },
+      { t: 'Selbstauskunft', p: ['Die Selbstauskunft ist die eigene Angabe der Kundin oder des Kunden. Übernehmen Sie die Angaben so ins System, wie sie gemacht wurden. Was die Bank am Ende ansetzt, entscheiden Sie später in der Haushaltsrechnung.'], liste: ['Angaben mit Nachweisen vergleichen.', 'Lücken und Widersprüche notieren und im Gespräch klären.', 'Bei Ehe oder eingetragener Lebenspartnerschaft Güterstand erfassen und Mitantrag prüfen.'] }
+    ] },
+    { id: 'auskunftei', titel: 'Auskunftei', ab: '2026-12-02', abschnitte: [
+      { t: 'Wozu die Auskunft dient', p: ['Vor jeder Kreditentscheidung holt die Bank eine Auskunft ein. Sie zeigt, welche Verträge eine Person hat und ob sie bisher vertragsgemäß gezahlt hat. Die Kundin wird mit dem Kreditantrag über die Datenübermittlung informiert.'] },
+      { t: 'Was gespeichert ist', liste: ['Name, Geburtsdatum, aktuelle und frühere Anschriften', 'Positivmerkmale: Girokonten, Kreditkarten, Kredite, Ratenzahlungskonten, Mobilfunkverträge, die vertragsgemäß laufen', 'Negativmerkmale: zum Beispiel gekündigte Kredite, unbestrittene offene Forderungen nach Mahnung, Einträge aus Schuldnerverzeichnissen', 'Anfragen von Unternehmen'] },
+      { t: 'Was nicht gespeichert ist', liste: ['Einkommen, Vermögen, Kontostände', 'einzelne Kontoumsätze und die Nutzung des Dispositionskredits innerhalb des Rahmens', 'Beruf, Arbeitgeber, Familienstand'] },
+      { t: 'Der Scorewert', p: ['Seit dem 17. März 2026 gibt es einen neuen SCHUFA-Score. Er reicht von 100 bis 999 Punkten, ein höherer Wert ist besser. Die SCHUFA teilt die Werte in fünf Klassen ein: hervorragend, gut, akzeptabel, ausreichend, ungenügend.', 'Der Score wird aus zwölf Kriterien berechnet. Dazu gehören Zahlungsstörungen, das Alter des ältesten Bankvertrags, der ältesten Kreditkarte und der aktuellen Adresse, Anfragen und neue Verträge der letzten zwölf Monate, neu aufgenommene Ratenkredite und ihre Restlaufzeit, ein Immobilienkredit und eine vorliegende Identitätsprüfung.', 'Der Scorewert ist ein Baustein. Er ersetzt nicht Ihre eigene Prüfung: Lesen Sie immer auch die einzelnen Einträge.'] },
+      { t: 'Anfragen', p: ['Für einen Angebotsvergleich stellt die Bank eine „Anfrage Kreditkonditionen“. Andere Banken sehen sie nicht, sie wirkt sich nicht auf den Score aus. Eine „Anfrage Kredit“ ist für andere Banken sichtbar.'] },
+      { t: 'Rechte der Kundinnen und Kunden', p: ['Jede Person kann kostenlos eine Datenkopie nach Art. 15 DSGVO anfordern und falsche Einträge berichtigen lassen. Lehnt die Bank einen Antrag wegen der Auskunft ab, informiert sie die Person darüber.'] },
+      { t: '„Später bezahlen“', p: ['Ratenkäufe und „Später bezahlen“ über Zahlungsdienste gelten seit dem 20.11.2026 als Verbraucherkredite. Behandeln Sie sie in der Kreditprüfung wie jeden anderen Kredit.'] }
+    ] },
+    { id: 'haushalt', titel: 'Haushaltsrechnung', ab: '2026-12-09', abschnitte: [
+      { t: 'Aufbau', p: ['Regelmäßige Einnahmen minus regelmäßige Ausgaben ergibt das frei verfügbare Einkommen. Daraus muss die neue Rate tragbar sein. In der Antragsmaske steht links die Kundenangabe, rechts tragen Sie den Bankansatz ein.'] },
+      { t: 'Richtlinie Haushaltsrechnung', tabelle: 'richtlinie' },
+      { t: 'Quellen für den Bankansatz', liste: ['Gehaltsabrechnungen: festes Nettogehalt, schwankende Zuschläge', 'Kontoumsätze: Miete, Lastschriften, Ratenkäufe', 'Auskunft: bestehende Kredite und Ratenpläne', 'Mietvertrag: Höhe der Miete, Mitmieter'] }
+    ] },
+    { id: 'entscheidung', titel: 'Scoring und Kreditentscheidung', ab: '2026-12-16', abschnitte: [
+      { t: 'Vom Scoring zum Zins', p: ['Das bankinterne Scoring ordnet jeden Antrag einer Risikoklasse von A bis E zu. Je höher das Ausfallrisiko, desto höher der Zins.'], tabelle: 'konditionen' },
+      { t: 'Kompetenzregelung', tabelle: 'kompetenz' },
+      { t: 'Das Votum', p: ['Im Votum fassen Sie die Prüfung zusammen und entscheiden: zustimmen, zustimmen mit Auflagen, ablehnen oder zurück an die Kundin, wenn Unterlagen oder Angaben fehlen. Begründen Sie immer mit der persönlichen und der wirtschaftlichen Kreditwürdigkeit.'] },
+      { t: 'Ablehnung', liste: ['klar und respektvoll mitteilen', 'sachlich begründen', 'über die Auskunft informieren, wenn sie der Grund ist', 'Wege aufzeigen: kleinerer Betrag, längere Laufzeit, Mitantrag'] }
+    ] },
+    { id: 'annuitaet', titel: 'Rate, Zinsen und Tilgung', ab: '2027-01-27', abschnitte: [
+      { t: 'Annuität', p: ['Der SchlossKredit wird in gleichbleibenden Monatsraten zurückgezahlt. Jede Rate besteht aus Zinsen und Tilgung. Weil die Restschuld sinkt, wird der Zinsanteil kleiner und der Tilgungsanteil größer.'] },
+      { t: 'Rechenweg', liste: ['Monatszins i = Sollzins : 12', 'Rate = Kreditbetrag × i : (1 − (1 + i) hoch −n), n = Laufzeit in Monaten', 'Zinsen eines Monats = Restschuld × i', 'Tilgung = Rate − Zinsen', 'Gesamtbetrag = Rate × n', 'Effektiver Jahreszins = (1 + i) hoch 12 − 1, wenn keine weiteren Kosten anfallen'] },
+      { t: 'In Excel', liste: ['Rate: =RMZ(Zins/12; Laufzeit; −Kreditbetrag)', 'Zinsanteil einer Rate: =ZINSZ(Zins/12; Monat; Laufzeit; −Kreditbetrag)', 'Tilgungsanteil einer Rate: =KAPZ(Zins/12; Monat; Laufzeit; −Kreditbetrag)'] }
+    ] }
   ],
 
   /* -------------------------------------------------------- FREISCHALTUNGEN

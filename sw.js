@@ -1,8 +1,8 @@
 /* Offline-Betrieb: Die App wird beim ersten Öffnen gespeichert und läuft danach ohne Internet.
    Bei jeder Änderung an der App die Versionsnummer erhöhen, damit alle Geräte die neue Fassung laden. */
-const VERSION = 'sb-kredit-1.1.0';
+const VERSION = 'sb-kredit-1.2.0';
 const DATEIEN = [
-  './', 'index.html', 'css/app.css', 'js/daten.js', 'js/app.js', 'manifest.webmanifest',
+  './', 'index.html', 'css/app.css', 'js/daten.js', 'js/training.js', 'js/app.js', 'manifest.webmanifest',
   'assets/logo.png', 'assets/logo-weiss.png', 'assets/icon-180.png', 'assets/icon-192.png', 'assets/icon-512.png'
 ];
 

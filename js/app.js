@@ -16,7 +16,7 @@
     kuerzel: '', frei: {}, lehrkraft: false, gelesen: {}, antwort: {}, notizen: [], sa: {}, saGeprueft: false,
     hh: { modus: 'selbst', w: {}, versuche: {}, erg: null, notiz: '' },
     re: { modus: 'selbst', versuche: 0, erg: null, notiz: '' }, sp: {},
-    antrag: {}, unterlagen: {}, ak: {}, votum: {}
+    antrag: {}, unterlagen: {}, ak: {}, votum: {}, tr: {}, ta: {}, kk: {}, kq: {}
   });
   let st = LEER();
   try { st = Object.assign(LEER(), JSON.parse(localStorage.getItem(SPEICHER) || '{}')); } catch (e) { /* ohne Speicher weiter */ }
@@ -32,7 +32,7 @@
   // Zahl aus deutscher Eingabe lesen: "2.250,00 €" → 2250
   function zahl(v) {
     if (v == null) return NaN;
-    let s = String(v).replace(/[€\s]/g, '');
+    let s = String(v).replace(/[€%\s]/g, '');
     if (s === '') return NaN;
     if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
     else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
@@ -79,6 +79,7 @@
     antrag: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
     bank: '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
     schloss: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
+    training: '<path d="M12 4l9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.2 2.2 2.5 5 2.5s5-1.3 5-2.5v-4.5"/>',
     pfeil: '<path d="M9 6l6 6-6 6"/>', druck: '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>'
   };
   const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
@@ -699,14 +700,29 @@
     <tr class="summe"><td>Summe</td><td class="r">${eur(tp.gesamt)}</td><td class="r">${eur(tp.zinsSumme)}</td><td class="r">${eur(tp.gesamt - tp.zinsSumme)}</td><td></td></tr></table>`;
 
   /* ------------------------------------------------------------ Unsere Bank */
-  const BANK_REITER = [['', 'Profil'], ['team', 'Team und Kompetenzen'], ['konditionen', 'Konditionen'], ['richtlinie', 'Richtlinie'], ['glossar', 'Glossar']];
-  function vBank(tab) {
+  const BANK_REITER = [['', 'Profil'], ['team', 'Team und Kompetenzen'], ['konditionen', 'Konditionen'], ['handbuch', 'Beraterhandbuch'], ['glossar', 'Glossar']];
+  const rkTabelle = () => `<div class="tabelle-wrap"><table><tr><th>Risikoklasse</th><th>Bonität</th><th class="r">Sollzins p. a.</th><th class="r">eff. Jahreszins</th></tr>${D.konditionen.kredit.risikoklassen.map(r => `<tr><td><b>${r.rk}</b></td><td>${esc(r.text)}</td><td class="r">${proz(r.sollzins)}</td><td class="r">${proz((Math.pow(1 + r.sollzins / 1200, 12) - 1) * 100)}</td></tr>`).join('')}</table></div>`;
+  const kompTabelle = () => `<div class="tabelle-wrap"><table><tr><th>Kreditbetrag</th><th>Risikoklasse</th><th>Entscheidung</th></tr>${D.kompetenz.tabelle.map(z => `<tr>${z.map(x => `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  const hbKapitel = k => k.abschnitte.map(a => `<h3 class="hb">${esc(a.t)}</h3>${(a.p || []).map(x => `<p>${esc(x)}</p>`).join('')}${a.liste ? `<ul class="hb">${a.liste.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    ${a.tabelle === 'richtlinie' ? `<ol class="hb">${D.richtlinie.punkte.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : a.tabelle === 'kompetenz' ? kompTabelle() : a.tabelle === 'konditionen' ? rkTabelle() : ''}`).join('');
+  function vHandbuch(kap, immer) {
+    const k = D.handbuch.find(x => x.id === kap && (immer || offenAb(x.ab)));
+    if (k) return `<a class="zurueck" href="#/bank/handbuch">‹ Beraterhandbuch</a><div class="karte"><h2>${D.handbuch.indexOf(k) + 1} ${esc(k.titel)}</h2>${hbKapitel(k)}
+      <div class="knopfreihe"><button class="knopf hell" data-act="druck-hb" data-id="${k.id}">${icon('druck')} Drucken / als PDF</button>${T.themen.some(t => t.id === k.id && offenAb(t.ab)) ? `<a class="knopf hell" href="#/training/${k.id}">Dazu üben</a>` : ''}</div></div>`;
+    return `<div class="karte eng"><ul class="liste">${D.handbuch.map((x, i) => offenAb(x.ab)
+      ? `<li><a class="station" href="#/bank/handbuch/${x.id}"><span class="nr">${i + 1}</span><span class="mitte" style="flex:1"><b>${esc(x.titel)}</b><br><span class="klein">${x.abschnitte.map(a => esc(a.t)).join(' · ')}</span></span><span class="pfeil">${icon('pfeil')}</span></a></li>`
+      : `<li><a class="station zu"><span class="nr">${icon('schloss')}</span><span class="mitte" style="flex:1"><b>${esc(x.titel)}</b><br><span class="klein">erscheint am ${datum(x.ab)}</span></span></a></li>`).join('')}</ul></div>
+      <p class="klein">Das Beraterhandbuch wächst mit Ihrer Arbeit: Neue Kapitel erscheinen automatisch.</p>`;
+  }
+  function vBank(tab, arg) {
+    const immer = tab === 'richtlinie'; // Die Richtlinie ist aus der Haushaltsrechnung immer erreichbar
+    if (immer) { tab = 'handbuch'; arg = 'haushalt'; }
     const b = D.bank, kk = D.konditionen;
     let inhalt = '';
     if (!tab) inhalt = `<div class="karte">${b.profil.map(p => `<p>${esc(p)}</p>`).join('')}<div class="kacheln vier" style="margin-top:6px">${b.zahlen.map(([z, l]) => `<div class="kachel"><b>${esc(z)}</b><span>${esc(l)}</span></div>`).join('')}</div></div>
       <div class="raster zwei"><div class="karte"><h2>Auf einen Blick</h2>${paare(b.steckbrief)}</div><div class="karte"><h2>Vorstand</h2>${paare(b.vorstand)}</div></div>
       <div class="karte"><h2>Leitbild: ${esc(b.slogan)}</h2><div class="raster zwei" style="margin:0">${b.werte.map(([w, t]) => `<div><b>${esc(w)}</b><br><span class="klein">${esc(t)}</span></div>`).join('')}</div></div>`;
-    else if (tab === 'team') inhalt = `<div class="karte"><h2>Kompetenzregelung Ratenkredit</h2><div class="tabelle-wrap"><table><tr><th>Kreditbetrag</th><th>Risikoklasse</th><th>Entscheidung</th></tr>${D.kompetenz.tabelle.map(z => `<tr>${z.map(x => `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</table></div>
+    else if (tab === 'team') inhalt = `<div class="karte"><h2>Kompetenzregelung Ratenkredit</h2>${kompTabelle()}
         <p class="klein" style="margin:10px 0 0">Das System prüft diese Grenzen automatisch und meldet, wenn Ihre Kompetenz überschritten ist.</p></div>
       <div class="karte"><h2>Ablauf Ratenkredit</h2><ol style="margin:0;padding-left:22px">${b.ablauf.map(a => `<li>${esc(a)}</li>`).join('')}</ol></div>
       <div class="karte eng"><h2 style="padding:16px 16px 4px">Ansprechpartner im Kreditgeschäft</h2><ul class="liste">${b.ansprechpartner.map(([n, f, a]) => `<li><div class="zeile" style="align-items:flex-start"><span class="mitte"><b>${esc(n)}</b><span style="white-space:normal">${esc(f)} · ${esc(a)}</span></span></div></li>`).join('')}</ul></div>`;
@@ -714,9 +730,84 @@
       <div class="karte"><h2>SchlossKredit (Ratenkredit)</h2><p class="klein">${eur(kk.kredit.minBetrag)} bis ${eur(kk.kredit.maxBetrag)}, ${kk.kredit.minLaufzeit} bis ${kk.kredit.maxLaufzeit} Monate, gebundener Sollzins, kostenlose Sondertilgungen</p>
         <div class="tabelle-wrap"><table><tr><th>Risikoklasse</th><th>Bonität</th><th class="r">Sollzins p. a.</th><th class="r">eff. Jahreszins</th></tr>${kk.kredit.risikoklassen.map(r => `<tr><td><b>${r.rk}</b></td><td>${esc(r.text)}</td><td class="r">${proz(r.sollzins)}</td><td class="r">${proz((Math.pow(1 + r.sollzins / 1200, 12) - 1) * 100)}</td></tr>`).join('')}</table></div>
         <p style="margin:12px 0 6px"><b>SchlossKredit Auto:</b> ${proz(kk.kredit.autoAbschlag, 1)}-Punkte günstiger bei Sicherungsübereignung des Fahrzeugs.</p><p class="klein" style="margin:0">${esc(kk.kredit.beispiel)} Die Restschuldversicherung ist freiwillig und keine Voraussetzung für den Kredit.</p></div>`;
-    else if (tab === 'richtlinie') inhalt = `<div class="karte"><h2>Richtlinie Haushaltsrechnung</h2><p class="klein">Auszug aus dem Beraterhandbuch der Kreditberatung Privatkunden</p><ol style="margin:0;padding-left:22px">${D.richtlinie.punkte.map(p => `<li style="margin-bottom:8px">${esc(p)}</li>`).join('')}</ol></div>`;
-    else if (tab === 'glossar') inhalt = `<div class="karte">${D.glossar.map(([w, t]) => `<p><b>${esc(w)}</b><br>${esc(t)}</p>`).join('')}</div>`;
+    else if (tab === 'handbuch') inhalt = vHandbuch(arg, immer);
+    else if (tab === 'glossar') inhalt = `<div class="karte"><div class="knopfreihe" style="margin:0 0 14px"><a class="knopf" href="#/training/karten">Begriffe üben</a></div>${D.glossar.map(([w, t]) => `<p><b>${esc(w)}</b><br>${esc(t)}</p>`).join('')}</div>`;
     return titel('Unsere Bank', esc(b.name)) + `<nav class="reiter">${BANK_REITER.map(([id, t]) => `<a href="#/bank${id ? '/' + id : ''}" class="${(tab || '') === id ? 'aktiv' : ''}">${t}</a>`).join('')}</nav>` + inhalt;
+  }
+
+  /* ---------------------------------------------------------------- Training */
+  const T = window.SB_TRAINING || { themen: [] };
+  const heuteISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  function offenAb(ab) { return st.lehrkraft || !ab || heuteISO() >= ab; }
+  const themaOffen = id => { const t = T.themen.find(x => x.id === id); return !t || offenAb(t.ab); };
+  const aufgId = (t, i) => t.id + '.' + i;
+  const geloest = t => t.aufgaben.filter((a, i) => st.tr[aufgId(t, i)] === 'ok').length;
+  // Nummer einer Aufgabe: „2.3“ oder „2.A Teil 1“ für die Abschlussaufgabe
+  function aufgNr(t, i) {
+    const n = T.themen.indexOf(t) + 1, a = t.aufgaben[i];
+    return a.abschluss ? `${n}.A Teil ${t.aufgaben.slice(0, i + 1).filter(x => x.abschluss).length}` : `${n}.${t.aufgaben.slice(0, i + 1).filter(x => !x.abschluss).length}`;
+  }
+  const TYP = { wahl: 'Auswahl', zahl: 'Rechnen', offen: 'Freie Antwort' };
+  const balken = (x, n) => `<div class="balken" role="img" aria-label="${x} von ${n} gelöst"><span style="width:${n ? Math.round(x / n * 100) : 0}%"></span></div>`;
+
+  function vTraining(a, b) {
+    if (a === 'karten') return vKarten();
+    const t = T.themen.find(x => x.id === a);
+    if (t && !offenAb(t.ab)) return `<a class="zurueck" href="#/training">‹ Training</a><div class="karte sperre">${icon('schloss')}<h2>${esc(t.titel)}</h2><p class="klein">Dieses Thema öffnet sich am ${datum(t.ab)}.</p></div>`;
+    if (t && b && t.aufgaben[+b - 1]) return vAufgabe(t, +b - 1);
+    if (t) {
+      const zeile = (x, i) => `<li><a class="station" href="#/training/${t.id}/${i + 1}"><span class="nr ${st.tr[aufgId(t, i)] === 'ok' ? 'fertig' : ''}">${st.tr[aufgId(t, i)] === 'ok' ? '✓' : esc(aufgNr(t, i).split(' ')[0].split('.')[1])}</span>
+        <span class="mitte" style="flex:1"><b>Aufgabe ${esc(aufgNr(t, i))}</b><br><span class="klein">${TYP[x.typ]} · ${esc(x.frage.replace(/^Teil \d: /, ''))}</span></span><span class="pfeil">${icon('pfeil')}</span></a></li>`;
+      const idx = t.aufgaben.map((x, i) => i);
+      return `<a class="zurueck" href="#/training">‹ Training</a>` + titel(`${T.themen.indexOf(t) + 1} ${t.titel}`, `${geloest(t)} von ${t.aufgaben.length} Aufgaben gelöst`) +
+        `<div class="karte eng"><ul class="liste">${idx.filter(i => !t.aufgaben[i].abschluss).map(i => zeile(t.aufgaben[i], i)).join('')}</ul></div>
+        <div class="karte eng"><h2 style="padding:16px 16px 4px">Abschlussaufgabe</h2><p class="klein" style="padding:0 16px">Ein zusammenhängender Fall zum ganzen Thema.</p><ul class="liste">${idx.filter(i => t.aufgaben[i].abschluss).map(i => zeile(t.aufgaben[i], i)).join('')}</ul></div>
+        <div class="knopfreihe">${D.handbuch.some(h => h.id === t.id && offenAb(h.ab)) ? `<a class="knopf hell" href="#/bank/handbuch/${t.id}">Im Beraterhandbuch nachlesen</a>` : ''}<button class="knopf hell" data-act="tr-reset" data-id="${t.id}">Thema von vorn beginnen</button></div>`;
+    }
+    const karten = D.glossar.filter(g => !g[2] || themaOffen(g[2]));
+    return titel('Training', 'Üben ohne Zeitdruck, unabhängig vom Fall Keller') + `
+      <div class="karte"><p>Hier üben Sie mit anderen Kundinnen und Kunden, was Sie in der Kreditberatung brauchen. Die Aufgaben sind freiwillig. Zu jeder Aufgabe gibt es zwei Hilfen und eine Musterlösung. Ihr Fortschritt bleibt nur auf diesem Gerät.</p>
+        <div class="knopfreihe"><button class="knopf" data-act="tr-zufall">Zufällige Aufgabe</button><a class="knopf hell" href="#/training/karten">Begriffe üben${karten.length ? ` (${karten.length} Karteikarten)` : ''}</a></div></div>
+      <div class="karte eng"><ul class="liste">${T.themen.map((x, i) => offenAb(x.ab)
+        ? `<li><a class="station" href="#/training/${x.id}"><span class="nr ${geloest(x) === x.aufgaben.length ? 'fertig' : ''}">${geloest(x) === x.aufgaben.length ? '✓' : i + 1}</span><span class="mitte" style="flex:1"><b>${esc(x.titel)}</b><br><span class="klein">${geloest(x)} von ${x.aufgaben.length} Aufgaben gelöst</span>${balken(geloest(x), x.aufgaben.length)}</span><span class="pfeil">${icon('pfeil')}</span></a></li>`
+        : `<li><a class="station zu"><span class="nr">${icon('schloss')}</span><span class="mitte" style="flex:1"><b>${esc(x.titel)}</b><br><span class="klein">öffnet sich am ${datum(x.ab)}</span></span></a></li>`).join('')}</ul></div>`;
+  }
+
+  function vAufgabe(t, i) {
+    const a = t.aufgaben[i], id = aufgId(t, i);
+    if (st.ta.id !== id) st.ta = { id, stufe: 0 };
+    const v = st.ta, ok = st.tr[id] === 'ok', n = t.aufgaben.length;
+    let eingabe;
+    if (a.typ === 'wahl') eingabe = a.wahl.map((w, j) => `<label class="haken-zeile"><input type="radio" name="wahl" data-k="ta.wahl" value="${j + 1}" ${String(v.wahl) === String(j + 1) ? 'checked' : ''}><span><b>${j + 1}</b>&nbsp; ${esc(w)}</span></label>`).join('');
+    else if (a.typ === 'zahl') eingabe = `<label class="feld" style="max-width:260px"><span>Ihr Ergebnis in ${a.einheit}</span><input class="eur" inputmode="decimal" data-k="ta.wert" value="${esc(v.wert || '')}" placeholder="${a.einheit === '%' ? '0,00' : '0,00'}" autocomplete="off"></label>`;
+    else eingabe = `<textarea data-k="ta.text" placeholder="Notieren Sie Ihre Antwort, bevor Sie die Musterlösung ansehen.">${esc(v.text || '')}</textarea>`;
+    const hilfen = (v.stufe >= 1 ? `<div class="hinweis warn"><div><b>Denkanstoß:</b> ${esc(a.hilfe[0])}</div></div>` : '') + (v.stufe >= 2 ? `<div class="hinweis warn"><div><b>Lösungsweg:</b> ${esc(a.hilfe[1])}</div></div>` : '') +
+      (v.stufe >= 3 ? `<div class="hinweis"><div><b>Musterlösung:</b> ${esc(a.loesung)}</div></div>` : '');
+    const urteil = v.erg === true ? `<div class="hinweis ok"><div><b>Richtig.</b> ${esc(a.loesung)}</div></div>` : v.erg === false ? '<div class="hinweis fehler"><div>Das stimmt noch nicht. Versuchen Sie es noch einmal oder holen Sie sich eine Hilfe.</div></div>' : '';
+    const HILFE = ['Hilfe 1: Denkanstoß', 'Hilfe 2: Lösungsweg', 'Musterlösung zeigen'];
+    return `<a class="zurueck" href="#/training/${t.id}">‹ ${esc(t.titel)}</a>` + titel(`Aufgabe ${aufgNr(t, i)}`, `${esc(t.titel)} · ${TYP[a.typ]}`, ok ? '<span class="marke gruen">✓ gelöst</span>' : '') + `
+      <div class="karte"><h2>Situation</h2><p style="margin:0">${esc(a.fall)}</p>${t.hausregeln ? `<p class="klein" style="margin:10px 0 0">${esc(T.hausregeln)}</p>` : ''}</div>
+      <div class="karte"><h2>${esc(a.frage)}</h2>${eingabe}
+        <div class="knopfreihe">${a.typ === 'offen' ? '' : '<button class="knopf" data-act="tr-pruefen">Antwort prüfen</button>'}${v.stufe < 3 && v.erg !== true ? `<button class="knopf hell" data-act="tr-hilfe">${HILFE[v.stufe]}</button>` : ''}</div>
+        <div id="ergebnis" style="margin-top:14px">${urteil}${v.erg === true ? '' : hilfen}</div>
+        ${a.typ === 'offen' && v.stufe >= 3 ? `<p style="margin:14px 0 0"><b>Vergleichen Sie mit Ihrer Antwort:</b></p><div class="knopfreihe" style="margin-top:8px"><button class="knopf ${ok ? '' : 'hell'}" data-act="tr-selbst" data-ok="1">Das hatte ich im Kern</button><button class="knopf hell" data-act="tr-selbst">Noch nicht, später noch einmal</button></div>` : ''}</div>
+      <div class="knopfreihe" style="justify-content:space-between">${i > 0 ? `<a class="knopf hell" href="#/training/${t.id}/${i}">‹ Vorige</a>` : '<span></span>'}${i < n - 1 ? `<a class="knopf ${ok ? '' : 'hell'}" href="#/training/${t.id}/${i + 2}">Nächste ›</a>` : `<a class="knopf ${ok ? '' : 'hell'}" href="#/training/${t.id}">Zur Übersicht</a>`}</div>`;
+  }
+
+  /* -------------------------------------------------------------- Karteikarten */
+  function vKarten() {
+    const karten = D.glossar.filter(g => !g[2] || themaOffen(g[2])), q = st.kq, offen = karten.filter(g => st.kk[g[0]] !== 'ok');
+    const kopf = `<a class="zurueck" href="#/training">‹ Training</a>` + titel('Begriffe üben', `${karten.length - offen.length} von ${karten.length} Begriffen gewusst`) +
+      `<div class="umschalter" role="group" aria-label="Richtung" style="margin-bottom:14px"><button class="${q.rueck ? '' : 'aktiv'}" data-act="kk-richtung">Begriff → Erklärung</button><button class="${q.rueck ? 'aktiv' : ''}" data-act="kk-richtung" data-r="1">Erklärung → Begriff</button></div>${balken(karten.length - offen.length, karten.length)}`;
+    const erstes = T.themen.map(t => t.ab).sort()[0];
+    if (!karten.length) return `<a class="zurueck" href="#/training">‹ Training</a>` + titel('Begriffe üben') + `<div class="karte sperre">${icon('schloss')}<h2>Noch keine Karteikarten</h2><p class="klein">Die ersten Begriffe erscheinen am ${datum(erstes)}, sobald das erste Thema geöffnet ist.</p></div>`;
+    if (!offen.length) return kopf + `<div class="karte sperre" style="margin-top:14px"><h2>Alle ${karten.length} Begriffe gewusst</h2><p class="klein">Neue Begriffe kommen dazu, sobald ein neues Thema geöffnet ist.</p><div class="knopfreihe" style="justify-content:center"><button class="knopf" data-act="kk-neu">Noch einmal von vorn</button><a class="knopf hell" href="#/bank/glossar">Zum Glossar</a></div></div>`;
+    let k = offen.find(g => g[0] === q.i); if (!k) { k = offen[0]; q.i = k[0]; q.auf = false; }
+    const vorn = q.rueck ? k[1] : k[0], hinten = q.rueck ? k[0] : k[1];
+    return kopf + `<button class="lernkarte ${q.auf ? 'auf' : ''}" data-act="kk-dreh" style="margin-top:14px"><span class="klein">${q.rueck ? 'Welcher Begriff ist gemeint?' : 'Was bedeutet dieser Begriff?'}</span><b class="${q.rueck ? 'lang' : ''}">${esc(vorn)}</b>
+        ${q.auf ? `<span class="rueck ${q.rueck ? 'kurz' : ''}">${esc(hinten)}</span>` : '<span class="klein">Antippen zum Umdrehen</span>'}</button>
+      ${q.auf ? '<div class="knopfreihe" style="justify-content:center"><button class="knopf" data-act="kk-ok">Wusste ich</button><button class="knopf hell" data-act="kk-nochmal">Nochmal</button></div>' : ''}
+      <p class="klein" style="text-align:center;margin-top:14px">Noch ${offen.length} ${offen.length === 1 ? 'Karte' : 'Karten'} im Stapel. „Nochmal“ legt die Karte ans Ende.</p>`;
   }
 
   /* -------------------------------------------------- Lehrkraft, Einstellungen */
@@ -746,12 +837,13 @@
     if (a === 'post') inhalt = vPost(b);
     else if (a === 'kunde') inhalt = vKunde(c, d);
     else if (a === 'antrag') inhalt = vAntrag(c);
-    else if (a === 'bank') inhalt = vBank(b);
+    else if (a === 'bank') inhalt = vBank(b, c);
+    else if (a === 'training') inhalt = vTraining(b, c);
     else if (a === 'rechner') { inhalt = vRechner(kunde(), true); aktiv = 'antrag'; }
     else if (a === 'konto') { inhalt = vKonto(); aktiv = ''; }
     else { inhalt = vStart(); aktiv = 'start'; }
     const u = ungelesen();
-    const nav = [['start', '#/', 'Arbeitsplatz', 'start'], ['post', '#/post', 'Posteingang', 'post'], ['kunde', '#/kunde/sophie', 'Kundin', 'kunde'], ['antrag', '#/antrag/sophie', 'Kreditantrag', 'antrag'], ['bank', '#/bank', 'Unsere Bank', 'bank']];
+    const nav = [['start', '#/', 'Arbeitsplatz', 'start'], ['post', '#/post', 'Posteingang', 'post'], ['kunde', '#/kunde/sophie', 'Kundin', 'kunde'], ['antrag', '#/antrag/sophie', 'Kreditantrag', 'antrag'], ['bank', '#/bank', 'Unsere Bank', 'bank'], ['training', '#/training', 'Training', 'training']];
     const fokus = behalteFokus && document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null;
     const pos = fokus ? document.activeElement.selectionStart : null;
     $app.innerHTML = `<div class="rahmen">
@@ -779,6 +871,7 @@
     if (k.startsWith('re.') && k !== 're.notiz') st.re.erg = null;
     if (k.startsWith('re.') && k !== 're.notiz' && k !== 're.rate') st.re.ueb = null;
     if (k.startsWith('votum.')) st.votum.meld = null;
+    if (k === 'ta.wahl' || k === 'ta.wert') st.ta.erg = null;
     sichern();
     if (el.dataset.live === 'hh') hhLive();
     if (el.dataset.neu) zeichnen(true);
@@ -853,6 +946,32 @@
     }
     else if (a === 'votum-zurueck') { st.votum.abgegeben = false; sichern(); neu(); }
     else if (a === 'datei-speichern') dateiSpeichern();
+    else if (a === 'tr-pruefen' || a === 'tr-hilfe' || a === 'tr-selbst') {
+      const [tid, i] = st.ta.id.split('.'), auf = T.themen.find(x => x.id === tid).aufgaben[+i], v = st.ta;
+      if (a === 'tr-hilfe') v.stufe = Math.min(3, (v.stufe || 0) + 1);
+      else if (a === 'tr-selbst') { if (el.dataset.ok) st.tr[v.id] = 'ok'; else delete st.tr[v.id]; }
+      else {
+        v.erg = auf.typ === 'wahl' ? +v.wahl === auf.richtig : Math.abs(zahl(v.wert) - auf.soll) <= (auf.tol || 0.05) + 1e-9;
+        if (v.erg) st.tr[v.id] = 'ok';
+      }
+      sichern(); neu(); if (a !== 'tr-selbst') zumErgebnis();
+    }
+    else if (a === 'tr-zufall') {
+      const pool = []; T.themen.filter(t => offenAb(t.ab)).forEach(t => t.aufgaben.forEach((x, i) => { if (st.tr[aufgId(t, i)] !== 'ok' && !x.abschluss) pool.push(`#/training/${t.id}/${i + 1}`); }));
+      if (pool.length) location.hash = pool[Math.floor(Math.random() * pool.length)];
+      else { meldung = { ok: true, text: 'Sie haben alle Aufgaben der geöffneten Themen gelöst. Offen sind höchstens noch Abschlussaufgaben.' }; neu(true); }
+    }
+    else if (a === 'tr-reset') { if (confirm('Fortschritt in diesem Thema löschen und von vorn beginnen?')) { Object.keys(st.tr).filter(x => x.startsWith(el.dataset.id + '.')).forEach(x => delete st.tr[x]); sichern(); neu(); } }
+    else if (a === 'kk-dreh') { st.kq.auf = !st.kq.auf; sichern(); neu(); }
+    else if (a === 'kk-richtung') { st.kq.rueck = !!el.dataset.r; st.kq.auf = false; sichern(); neu(); }
+    else if (a === 'kk-neu') { st.kk = {}; st.kq.i = null; sichern(); neu(); }
+    else if (a === 'kk-ok' || a === 'kk-nochmal') {
+      const karten = D.glossar.filter(g => !g[2] || themaOffen(g[2])), pos = karten.findIndex(g => g[0] === st.kq.i);
+      if (a === 'kk-ok') st.kk[st.kq.i] = 'ok';
+      const rest = karten.slice(pos + 1).concat(karten.slice(0, pos + 1)).filter(g => st.kk[g[0]] !== 'ok');
+      st.kq.i = rest.length ? rest[0][0] : null; st.kq.auf = false; sichern(); neu();
+    }
+    else if (a === 'druck-hb') { const h = D.handbuch.find(x => x.id === el.dataset.id); drucken(`${D.handbuch.indexOf(h) + 1} ${h.titel}`, 'Beraterhandbuch der Kreditberatung Privatkunden', hbKapitel(h)); }
     else if (a === 'druck-ak') drucken('Auskunft der Auskunftei (Muster)', `${k.vorname} ${k.name} · Kundennr. ${k.kundennr}`, auskunftHtml(k) + notizBlock(st.ak.notiz, 'Meine Auswertung'));
     else if (a === 'druck-votum') {
       const v = st.votum, e = VOTUM.find(x => x[0] === v.entscheidung);
