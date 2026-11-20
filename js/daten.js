@@ -14,7 +14,7 @@
 
 window.SB = {
 
-  version: '1.2.0',
+  version: '1.3.0',
   heute: '2026-11-11',            // „Systemdatum“ der Bank (Stand der Daten)
 
   /* ---------------------------------------------------------------- BANK */
@@ -306,7 +306,8 @@ window.SB = {
       text: [
         'Hallo,',
         'der Termin mit Frau Keller steht: Mittwoch, 25.11.2026, 16:00 Uhr, Hauptstelle, Beratungsraum 2.',
-        'Ich habe die Station „Selbstauskunft“ im Kreditantrag für Sie geöffnet. Sobald Frau Keller ihre Unterlagen hochlädt, finden Sie sie in der Kundenübersicht unter „Dokumente“.',
+        'Ich habe im Kreditantrag die Station „Selbstauskunft prüfen“ für Sie geöffnet. Dort liegen alle Nachweise: die Gehaltsabrechnungen, die Kontoumsätze und die SCHUFA-Auskunft, die Herr Lindner aus der Kreditsachbearbeitung gestern abgerufen hat.',
+        'Ihre Selbstauskunft bringt Frau Keller ausgefüllt zum Termin mit.',
         'Viele Grüße',
         'Melanie Sauer'
       ]
@@ -316,7 +317,7 @@ window.SB = {
       datum: '2026-11-24', zeit: '19:20', betreff: 'Unterlagen für morgen',
       text: [
         'Hallo,',
-        'vielen Dank für die schnelle Antwort! Ich habe die Selbstauskunft ausgefüllt und zusammen mit meinen letzten drei Gehaltsabrechnungen hochgeladen. Den Mietvertrag und meinen Ausweis bringe ich morgen mit.',
+        'vielen Dank für die schnelle Antwort! Meine letzten drei Gehaltsabrechnungen habe ich hochgeladen. Die Selbstauskunft habe ich ausgefüllt und bringe sie morgen zusammen mit dem Mietvertrag und meinem Ausweis mit.',
         'Bei manchen Feldern war ich mir nicht sicher. Die Wohnung teile ich mir mit meinem Freund Paul, wir zahlen die Miete je zur Hälfte. Verheiratet sind wir nicht.',
         'Bis morgen um 16 Uhr!',
         'Sophie Keller'
@@ -534,7 +535,90 @@ window.SB = {
         ],
         anfragen: [
           ['01.12.2026', 'Schlossbank Aschaffenburg AG', 'Anfrage Kreditkonditionen']
-        ]
+        ],
+        // Fassung für die Station „Selbstauskunft prüfen“ (Std04): von der Kreditsachbearbeitung abgerufen
+        nachweis: { abfrage: '2026-11-24', von: 'Erik Lindner, Kreditsachbearbeitung',
+          anfragen: [['24.11.2026', 'Schlossbank Aschaffenburg AG', 'Anfrage Kreditkonditionen']] }
+      },
+
+      /* Station „Selbstauskunft prüfen“: Die Selbstauskunft liegt auf Papier vor.
+         Die Beraterinnen und Berater melden nur Abweichungen (Feld, richtiger Wert, Nachweis).
+         kern = eine der drei Abweichungen, die gefunden werden müssen.
+         soll = [von, bis] erlaubter Bereich des richtigen Werts, quellen = Nachweise, die den Wert belegen.
+         info = Feld ist kein Fehler dieser Station (Hinweis statt Bewertung).
+         Felder ohne Regel gelten als „stimmt mit den Nachweisen überein“.                      */
+      pruefung: {
+        kern: [['gehalt', 'Einkommen'], ['telefon', 'Mobilfunkvertrag'], ['bnpl', 'Ratenpläne „Später bezahlen“']],
+        quellen: [['gehalt', 'Gehaltsabrechnungen'], ['konto', 'Kontoumsätze'], ['schufa', 'SCHUFA-Auskunft']],
+        regeln: {
+          gehalt: { kern: 'gehalt', soll: [2250, 2250], quellen: ['gehalt', 'konto'],
+            ok: 'Richtig: Fest sind 2.250,00 € netto. Frau Keller hat die schwankenden Schichtzuschläge mitgerechnet.',
+            falsch: 'Dieser Betrag passt nicht. Welcher Betrag kommt laut Gehaltsabrechnung jeden Monat sicher?' },
+          telefonKosten: { kern: 'telefon', soll: [45, 59.5], quellen: ['konto'],
+            ok: 'Richtig: Der Mobilfunkvertrag bei TeleMain (45,00 € im Monat) fehlt. Die angegebenen 14 € sind ihr Streaming-Abo.',
+            falsch: 'Dieser Betrag passt nicht. Suchen Sie in den Kontoumsätzen nach Lastschriften für Telefon und Mobilfunk.',
+            quelleFalsch: 'Die SCHUFA-Auskunft zeigt nur, dass es einen Mobilfunkvertrag gibt, aber nicht, was er kostet. Welcher Nachweis zeigt den Betrag?' },
+          bnpl: { kern: 'bnpl', soll: [59.5, 60.5], teil: [34.9, 25.1], quellen: ['konto', 'schufa'],
+            ok: 'Richtig: Zwei laufende Ratenpläne bei der SpäterZahlen GmbH, zusammen 60,00 € im Monat. Sie stehen in den Kontoumsätzen und in der SCHUFA-Auskunft.',
+            falsch: 'Dieser Betrag passt nicht. Schauen Sie in den Kontoumsätzen jeweils Mitte des Monats nach.',
+            teilText: 'Teilweise richtig: Es laufen ZWEI Ratenpläne. Tragen Sie den Gesamtbetrag pro Monat ein.' },
+          raten: { wie: 'bnpl' }, verb: { wie: 'bnpl' },
+          kfz: { info: 'Frau Keller hat noch kein Auto, die 200 € sind geschätzt. Welcher Betrag angesetzt wird, legen Sie in der Haushaltsrechnung fest.' },
+          zulagen: { info: 'Die Zuschläge schwanken je nach Dienstplan (180 € bis 310 €). Wie sie angesetzt werden, klären Sie in der Haushaltsrechnung.' },
+          miete: { stimmt: 'Stimmt: Vom Konto gehen 960 € Miete ab, Paul überweist jeden Monat 480 €. Ihr Anteil sind 480 €.' },
+          sonstAus: { stimmt: 'Stimmt: Die 30 € sind der Beitrag fürs Fitnessstudio (29,90 €).' }
+        },
+        // Felder, die zur Auswahl stehen (Abschnitte 3 bis 6 der Selbstauskunft)
+        felder: ['gehalt', 'zulagen', 'kindergeld', 'sonstEin', 'miete', 'versicherungen', 'kfz', 'telefonKosten', 'sonstAus', 'raten', 'bnpl', 'sparen', 'unterhalt', 'verb', 'vermGiro'],
+        stimmt: 'Diese Angabe stimmt mit den Nachweisen überein. Hier gibt es keine Abweichung.'
+      },
+
+      /* Chat „Rückfragen an Frau Keller“: Die Beraterinnen und Berater tippen frei.
+         Erkannt wird über Stichwörter (klein geschrieben, ä = ae, ö = oe, ü = ue, ß = ss).
+         kern: zählt für „x von 3 Punkten geklärt“. Unzulässige Fragen werden zuerst geprüft.  */
+      chat: {
+        start: 'Hallo! Schön, dass es heute klappt. Wenn bei meiner Selbstauskunft etwas unklar ist, fragen Sie ruhig.',
+        unzulaessig: [
+          { muster: ['instagram', 'facebook', 'tiktok', 'social media', 'soziale netzwerk', 'soziale medien', 'snapchat', 'linkedin'],
+            text: 'Diese Frage ist nicht zulässig. Daten aus sozialen Netzwerken darf die Bank für die Kreditwürdigkeitsprüfung nicht verwenden.' },
+          { muster: ['kinderwunsch', 'schwanger', 'familienplanung', 'kinder geplant', 'kinder planen', 'kinder bekommen', 'kinder haben moechten', 'kinder haben wollen', 'planen sie kinder', 'wollen sie kinder', 'moechten sie kinder', 'heiraten'],
+            text: 'Diese Frage ist für die Kreditprüfung nicht erforderlich und betrifft die Privatsphäre. Gefragt wird nur, was für die Rückzahlung heute bedeutsam ist: Einkommen, Ausgaben und bestehende Verpflichtungen.' },
+          { muster: ['religion', 'kirche', 'glaube', 'partei', 'politisch', 'waehlen sie', 'herkunft', 'krankheit', 'gesundheit', 'diagnose', 'behinderung'],
+            text: 'Diese Frage gehört nicht in die Kreditwürdigkeitsprüfung. Fragen Sie nur nach Angaben, die für die Rückzahlung des Kredits wichtig sind.' }
+        ],
+        themen: [
+          { id: 'gehalt', kern: true, muster: ['gehalt', 'verdien', 'einkommen', 'netto', 'lohn', 'zulage', 'zuschlag', 'schicht', '2500', '2.500', 'abrechnung'],
+            text: 'Ach so, die 2.500 €. Fest bekomme ich 2.250 € netto. Dazu kommen Zuschläge für Nacht-, Sonn- und Feiertagsdienste. Die schwanken je nach Dienstplan, mal 180 €, mal über 300 €. Ich dachte, die gehören dazu.' },
+          { id: 'telefon', kern: true, muster: ['handy', 'mobil', 'telefon', 'smartphone', 'telemain', '14 €', '14 euro', 'streaming'],
+            text: 'Oh, den Handyvertrag habe ich ganz vergessen. Der kostet 45 € im Monat bei TeleMain. Die 14 € bei „Telefon“ sind mein Streaming-Abo.' },
+          { id: 'bnpl', kern: true, muster: ['spaeter', 'bnpl', 'buy now', 'ratenkauf', 'ratenplan', 'ratenzahlung', 'raten', 'verbindlichkeit', 'schulden', 'abzahl', 'abbezahl', 'klarna', 'paypal', 'kaufjetzt', 'andere kredite', 'weitere kredite', 'bestehende kredite', 'laufende kredite', 'sonstige kredite', 'weitere vertraege', 'andere vertraege', 'verpflichtung', 'zahlen sie noch', 'kreditkarte'],
+            text: 'Sie meinen die zwei Sachen bei SpäterZahlen? Das sind nur kleine Raten für mein Sofa und eine Bestellung beim Modeversand: 34,90 € und 25,10 € im Monat. Die sind im Dezember und im Januar abbezahlt. Das ist doch kein richtiger Kredit, oder?' },
+          { id: 'paul', muster: ['paul', 'freund', 'partner', 'lebensgef', 'miete', 'wohnung', 'mitbewohn', 'wohnen'],
+            text: 'Paul überweist mir jeden Monat seine Hälfte, also 480 €. Die ganzen 960 € Miete gehen von meinem Konto ab, der Mietvertrag läuft auf uns beide.' },
+          { id: 'kinder', muster: ['kinder', 'kind ', 'unterhalt'],
+            text: 'Nein, ich habe keine Kinder und zahle auch keinen Unterhalt.' },
+          { id: 'auto', muster: ['auto', 'wagen', 'ibiza', 'fahrzeug', 'kfz', 'benzin', 'versicherung fuers auto'],
+            text: 'Ich habe einen Seat Ibiza von 2021 im Blick, für 14.900 €. Was das Auto im Monat kostet, habe ich mit 200 € geschätzt. Genau weiß ich das noch nicht.' },
+          { id: 'erspartes', muster: ['erspart', 'eigenkapital', 'tagesgeld', 'sparen', 'anzahlung', 'ruecklage', 'notgroschen', 'vermoegen'],
+            text: '2.400 € kann ich anzahlen. Etwa 1.000 € möchte ich als Notgroschen auf dem Tagesgeld lassen. Die 100 € Sparrate kann ich auch stoppen, wenn es knapp wird.' },
+          { id: 'arbeit', muster: ['arbeitgeber', 'unbefristet', 'befristet', 'probezeit', 'klinik', 'arbeitsvertrag', 'nachtdienst', 'beschaeftigt', 'arbeiten sie', 'beruf'],
+            text: 'Ich arbeite seit meiner Ausbildung im Kahlgrund-Klinikum, seit 2022 unbefristet als Pflegefachfrau. Ab Mai bin ich fest im Nachtdienst.' },
+          { id: 'versicherung', muster: ['versicherung', 'haftpflicht', 'hausrat'],
+            text: 'Ich habe eine Privathaftpflicht und eine Hausratversicherung, zusammen 40 € im Monat.' },
+          { id: 'fitness', muster: ['fitness', 'sport', 'sonstige ausgaben', '30 €', '30 euro'],
+            text: 'Die 30 € sind mein Fitnessstudio, 29,90 € im Monat.' },
+          { id: 'smalltalk', muster: ['wie geht', 'alles gut', 'wie gehts'],
+            text: 'Gut, danke! Ein bisschen aufgeregt bin ich schon.' },
+          { id: 'gruss', muster: ['hallo', 'guten tag', 'guten abend', 'moin', 'servus', 'gruess'],
+            text: 'Hallo! Fragen Sie gern.' },
+          { id: 'danke', muster: ['danke', 'tschuess', 'auf wiedersehen', 'bis bald'],
+            text: 'Ich danke Ihnen!' }
+        ],
+        unklar: ['Wie meinen Sie das genau?', 'Das verstehe ich nicht ganz. Können Sie das anders fragen?', 'Hm, worauf wollen Sie hinaus?'],
+        tipp1: 'Tipp: Fragen Sie gezielt nach den Abweichungen, die Ihnen beim Abgleich mit den Nachweisen aufgefallen sind.',
+        tipp2: 'Tipp: Fragen Sie zum Beispiel nach ihrem Einkommen, nach ihrem Handyvertrag oder nach weiteren Ratenzahlungen.',
+        schluss: 'Darf ich auch noch etwas fragen? Steht das mit dem Später-bezahlen jetzt eigentlich bei der SCHUFA? Und schadet mir das für den Kredit?',
+        schlussSystem: 'Alle drei Abweichungen sind geklärt. Frau Kellers Frage zur SCHUFA beantworten Sie im nächsten Termin.'
       },
 
       // Musterstand für die Stunden-Einstiege (siehe „einstiege“ oben)

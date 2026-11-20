@@ -16,10 +16,14 @@
     kuerzel: '', frei: {}, lehrkraft: false, gelesen: {}, antwort: {}, notizen: [], sa: {}, saGeprueft: false,
     hh: { modus: 'selbst', w: {}, versuche: {}, erg: null, notiz: '' },
     re: { modus: 'selbst', versuche: 0, erg: null, notiz: '' }, sp: {},
-    antrag: {}, unterlagen: {}, ak: {}, votum: {}, tr: {}, ta: {}, kk: {}, kq: {}
+    antrag: {}, unterlagen: {}, ak: {}, votum: {}, tr: {}, ta: {}, kk: {}, kq: {},
+    pf: { tab: 'nachweise', nw: 'gehalt', liste: [], ok: false, feld: '', wert: '', quelle: '' },
+    chat: { verlauf: [], geklaert: {}, fehl: 0, unz: 0, schluss: false }
   });
   let st = LEER();
   try { st = Object.assign(LEER(), JSON.parse(localStorage.getItem(SPEICHER) || '{}')); } catch (e) { /* ohne Speicher weiter */ }
+  // Die Selbstauskunft liegt auf Papier vor und wird nicht mehr abgetippt: Haushaltsrechnung und Kreditrechner lesen Sophies Angaben.
+  if (!st.sa || !Object.keys(st.sa).length) st.sa = Object.assign({}, D.kunden.sophie.selbstauskunft);
   let meldung = null; // kurzlebige Rückmeldung (z. B. nach Code-Eingabe)
   const sichern = () => { try { localStorage.setItem(SPEICHER, JSON.stringify(st)); } catch (e) { /* privat-Modus */ } };
 
@@ -144,14 +148,14 @@
 
   /* ---------------------------------------------------- Antrag als Prozess */
   const STATIONEN = [
-    { id: 'selbstauskunft', kurz: 'Selbstauskunft', t: 'Selbstauskunft erfassen', u: 'Angaben der Kundin ins System übernehmen und prüfen', frei: 'selbstauskunft' },
+    { id: 'selbstauskunft', kurz: 'Selbstauskunft', t: 'Selbstauskunft prüfen', u: 'Angaben der Kundin mit den Nachweisen abgleichen, Rückfragen klären', frei: 'selbstauskunft' },
     { id: 'auskunftei', kurz: 'Auskunftei', t: 'Auskunftei abfragen', u: 'Auskunft einholen und selbst auswerten', frei: 'auskunftei' },
     { id: 'haushalt', kurz: 'Haushaltsrechnung', t: 'Haushaltsrechnung', u: 'Kundenangaben prüfen, Bankansatz festlegen, frei verfügbares Einkommen ermitteln', frei: 'haushalt' },
     { id: 'scoring', kurz: 'Scoring', t: 'Scoring und Risikoklasse', u: 'folgt im Laufe der Kreditprüfung', folgt: true },
     { id: 'rechner', kurz: 'Kreditrechner', t: 'Kreditrechner und Tilgungsplan', u: 'Rate, Laufzeit und Gesamtkosten berechnen', frei: 'rechner' },
     { id: 'votum', kurz: 'Votum', t: 'Kreditentscheidung (Votum)', u: 'Ergebnisse zusammenführen, entscheiden und begründen', frei: 'votum' }
   ];
-  const saFertig = () => !!st.saGeprueft && !saPruefung(kunde()).m.some(x => x[0] === 'fehler');
+  const saFertig = () => !!st.pf.ok;
   const stationFertig = id => id === 'selbstauskunft' ? saFertig() : id === 'auskunftei' ? !!st.ak.abgerufen : id === 'haushalt' ? !!st.hh.fertig
     : id === 'rechner' ? !!st.re.ueb : id === 'votum' ? !!st.votum.abgegeben : false;
   const stationVor = id => STATIONEN.slice(0, STATIONEN.findIndex(s => s.id === id)).filter(x => !x.folgt).pop();
@@ -194,7 +198,11 @@
     const k = kunde();
     schritte.forEach(s => {
       if (s === 'antrag' && !st.antrag.angelegt) st.antrag = { kunde: true, produkt: 'kredit', angelegt: true };
-      if (s === 'selbstauskunft' && !saFertig()) { st.sa = Object.assign({}, k.selbstauskunft); st.saGeprueft = true; }
+      if (s === 'selbstauskunft' && !saFertig()) {
+        st.sa = Object.assign({}, k.selbstauskunft);
+        st.pf.liste = [{ feld: 'gehalt', wert: '2250', quelle: 'gehalt' }, { feld: 'telefonKosten', wert: '59', quelle: 'konto' }, { feld: 'bnpl', wert: '60', quelle: 'konto' }];
+        st.pf.ok = true;
+      }
       if (s === 'auskunftei') { st.ak.hinweis = true; st.ak.abgerufen = true; }
       if (s === 'haushalt' && !st.hh.fertig) {
         const w = { rate: st.hh.w.rate || '' }; k.haushalt.zeilen.forEach(z => { w[z.id] = String(z.soll); });
@@ -391,10 +399,10 @@
   }
 
   /* --------------------------------------------------------------- Antrag */
-  const auskunftHtml = k => {
-    const a = k.auskunftei;
+  const auskunftHtml = (k, fassung) => {
+    const a = Object.assign({}, k.auskunftei, fassung || {});
     return `<div class="papier"><h2>Auskunft über ${esc(k.vorname)} ${esc(k.name)}</h2>
-      <p class="klein">Auskunftei (Muster) · Abfrage vom ${datum(a.abfrage)} · Anlass: ${esc(a.grund)} · Im echten Bankbetrieb liefert diese Auskunft die SCHUFA.</p>
+      <p class="klein">Auskunftei (Muster) · Abfrage vom ${datum(a.abfrage)}${a.von ? ` durch ${esc(a.von)}` : ''} · Anlass: ${esc(a.grund)} · Im echten Bankbetrieb liefert diese Auskunft die SCHUFA.</p>
       <div class="kacheln" style="margin:12px 0"><div class="kachel"><b>${esc(a.scorewert)}</b><span>Scorewert · ${esc(a.skala)}</span></div></div>
       <h3 style="margin:14px 0 6px">Gespeicherte Verträge</h3>
       <div class="tabelle-wrap"><table><tr><th>Art</th><th>Vertragspartner</th><th>seit</th><th>Angaben</th><th>Zahlungsverhalten</th></tr>${a.eintraege.map(e => `<tr>${e.map(x => `<td>${esc(x || '–')}</td>`).join('')}</tr>`).join('')}</table></div>
@@ -518,54 +526,97 @@
           <button class="knopf hell" data-act="druck-votum">${icon('druck')} Drucken / als PDF</button></div></div>`;
   }
 
-  function saPruefung(k) {
-    const w = st.sa, m = [];
-    const fehlt = SA.flatMap(([, f]) => f).filter(([id, , pflicht]) => pflicht && !(w[id] || '').trim()).map(([, l]) => l);
-    if (fehlt.length) m.push(['fehler', 'Pflichtfelder fehlen: ' + fehlt.join(', ') + '.']);
-    const g = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec((w.geburtsdatum || '').trim());
-    if (g) {
-      const heute = new Date(D.heute), geb = new Date(+g[3], +g[2] - 1, +g[1]);
-      let alter = heute.getFullYear() - geb.getFullYear(); if (heute < new Date(heute.getFullYear(), geb.getMonth(), geb.getDate())) alter--;
-      if (alter < 18) m.push(['fehler', `Kreditfähigkeit: Die Antragstellerin bzw. der Antragsteller ist ${alter} Jahre alt und nicht voll geschäftsfähig. Der Antrag kann so nicht angelegt werden.`]);
-      else m.push(['ok', `Kreditfähigkeit: ${alter} Jahre, voll geschäftsfähig. Bitte Personalausweis im Termin prüfen.`]);
-    } else if ((w.geburtsdatum || '').trim()) m.push(['warn', 'Das Geburtsdatum bitte im Format TT.MM.JJJJ erfassen.']);
-    if (/verheiratet|Lebenspartner/.test(w.familienstand || '') && !w.gueterstand) m.push(['warn', 'Bei Ehe oder eingetragener Lebenspartnerschaft bitte den Güterstand erfassen und einen Mitantrag prüfen.']);
-    const betrag = zahl(w.kreditbetrag), preis = zahl(w.kaufpreis), ek = zahl0(w.eigenkapital), lz = zahl(w.laufzeit);
-    systemmeldungen(betrag, lz).forEach(x => m.push(x));
-    if (!isNaN(betrag) && !isNaN(preis)) {
-      const bedarf = rund(preis - ek);
-      if (betrag > bedarf + 0.005) m.push(['warn', `Der Kreditbetrag (${eur(betrag)}) ist höher als der Finanzierungsbedarf (Kaufpreis minus Eigenkapital = ${eur(bedarf)}).`]);
-      else if (betrag < bedarf - 0.005) m.push(['warn', `Finanzierungslücke: Kaufpreis minus Eigenkapital ergibt ${eur(bedarf)}, erfasst sind ${eur(betrag)}.`]);
+  /* ------------------------------------------- Station „Selbstauskunft prüfen“ */
+  const norm = t => String(t || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/\s+/g, ' ');
+  const passt = (text, muster) => muster.some(m => new RegExp('(^|[^a-z0-9])' + norm(m).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(text));
+  const saLabel = id => { const f = SA.flatMap(([, l]) => l).find(x => x[0] === id); return f ? f[1] : id; };
+  const quelleName = id => (kunde().pruefung.quellen.find(q => q[0] === id) || ['', '–'])[1];
+  // Eine gemeldete Abweichung bewerten → [art, text, kern]
+  function pfBewerten(e) {
+    const P = kunde().pruefung; let r = P.regeln[e.feld];
+    if (r && r.wie) r = P.regeln[r.wie];
+    if (!r) return ['info', P.stimmt];
+    if (r.info) return ['info', r.info];
+    if (r.stimmt) return ['info', r.stimmt];
+    const x = zahl(e.wert);
+    if (isNaN(x)) return ['fehler', 'Bitte tragen Sie den richtigen Betrag in Euro ein.'];
+    if (x >= r.soll[0] - 0.005 && x <= r.soll[1] + 0.005) {
+      if (!r.quellen.includes(e.quelle)) return ['warn', r.quelleFalsch || 'Der Betrag stimmt, aber der gewählte Nachweis belegt ihn nicht. Welcher Nachweis zeigt den Betrag?'];
+      return ['ok', r.ok, r.kern];
     }
-    const ab = [];
-    if (istFrei('abgleich')) (k.abgleich || []).forEach(r => {
-      const x = zahl0(w[r.feld]);
-      if ((r.op === 'groesser' && x > r.wert) || (r.op === 'kleiner' && x < r.wert)) ab.push(['warn', r.text.replace('{x}', eur(x))]);
-    });
-    return { m, ab };
+    if (r.teil && r.teil.some(t => Math.abs(t - x) < 0.01)) return ['warn', r.teilText];
+    return ['fehler', r.falsch];
+  }
+  const pfGefunden = () => { const g = {}; st.pf.liste.forEach(e => { const b = pfBewerten(e); if (b[0] === 'ok') g[b[2]] = true; }); return g; };
+
+  function gehaltTabelle(k) {
+    const g = k.dokumente.filter(d => d.typ === 'gehalt').slice().reverse();
+    const z = (t, f, cls) => `<tr class="${cls || ''}"><td>${t}</td>${g.map(d => `<td class="r">${f(d)}</td>`).join('')}</tr>`;
+    return `<p class="klein">Kahlgrund-Klinikum Alzenau · Personalabteilung · Sophie Keller, Pflegefachfrau, Vollzeit, unbefristet</p>
+      <div class="tabelle-wrap"><table><tr><th>Monat</th>${g.map(d => `<th class="r">${esc(d.monat)}</th>`).join('')}</tr>
+      ${z('Bruttogehalt', d => eur(d.brutto))}${z('Steuern und Sozialversicherung', d => eur(d.netto - d.brutto))}${z('<b>Nettogehalt (fest)</b>', d => `<b>${eur(d.netto)}</b>`)}
+      ${z('Zuschläge Schichtdienst (je nach Dienstplan)', d => eur(d.zuschlag))}${z('Auszahlungsbetrag', d => eur(d.netto + d.zuschlag), 'summe')}</table></div>`;
   }
 
   function vSelbstauskunft(k) {
+    const pf = st.pf, P = k.pruefung, g = pfGefunden(), n = Object.keys(g).length, kopf = stationKopf('selbstauskunft', 'Selbstauskunft prüfen', 'Formular PK-07 · Frau Kellers Selbstauskunft liegt Ihnen auf Papier vor.') + weiter('selbstauskunft');
+    const teil = `<nav class="reiter">${[['nachweise', '1 Nachweise prüfen'], ['chat', '2 Rückfragen an Frau Keller']].map(([id, t]) => `<a href="javascript:void 0" data-act="pf-tab" data-id="${id}" class="${pf.tab === id ? 'aktiv' : ''}">${t}</a>`).join('')}</nav>`;
+    if (pf.tab === 'chat') return kopf + teil + vChat(k);
+    const um = saldoListe(k);
+    const nw = pf.nw === 'konto' ? vUmsaetze(k, um).replace(/^<div class="karte">/, '<div>') : pf.nw === 'schufa' ? auskunftHtml(k, k.auskunftei.nachweis) : gehaltTabelle(k);
+    return kopf + teil + `
+      <div class="hinweis"><div>Vergleichen Sie Frau Kellers Selbstauskunft (Papier) mit den Nachweisen der Bank. Melden Sie unten nur die Angaben, die <b>nicht</b> stimmen.</div></div>
+      <div class="karte" style="margin-top:12px"><h2>Nachweise</h2>
+        <nav class="reiter">${P.quellen.map(([id, t]) => `<a href="javascript:void 0" data-act="pf-nw" data-id="${id}" class="${pf.nw === id ? 'aktiv' : ''}">${esc(t)}</a>`).join('')}</nav>${nw}</div>
+      <div class="karte" id="ergebnis"><h2>Prüfergebnis melden</h2>
+        <form data-form="pf"><div class="felder">
+          <label class="feld"><span>Feld der Selbstauskunft</span><select name="feld" required><option value="">bitte wählen</option>${P.felder.map(id => `<option value="${id}">${esc(saLabel(id))}</option>`).join('')}</select></label>
+          <label class="feld"><span>richtiger Wert in € (pro Monat)</span><input name="wert" class="eur" inputmode="decimal" autocomplete="off" required></label>
+          <label class="feld"><span>Nachweis</span><select name="quelle" required><option value="">bitte wählen</option>${P.quellen.map(([id, t]) => `<option value="${id}">${esc(t)}</option>`).join('')}</select></label>
+        </div><div class="knopfreihe"><button class="knopf">Abweichung eintragen</button></div></form>
+        ${pf.liste.length ? `<h3 style="margin:14px 0 6px">Ihre Meldungen</h3>${pf.liste.map((e, i) => { const b = pfBewerten(e); return `<div class="hinweis ${b[0]}"><div><b>${esc(saLabel(e.feld))}:</b> Frau Keller ${esc(saWert(st.sa, e.feld, 'eur'))} · richtig ${esc(saWert(e, 'wert', 'eur'))} · ${esc(quelleName(e.quelle))}<br>${esc(b[1])}
+          <button class="knopf hell klein-k" style="margin-top:6px" data-act="pf-weg" data-i="${i}">Meldung löschen</button></div></div>`; }).join('')}` : ''}
+        <p style="margin:14px 0 6px"><b>${n} von ${P.kern.length} Abweichungen gefunden</b></p>${balken(n, P.kern.length)}
+        ${pf.ok ? `<div class="hinweis ok" style="margin-top:12px"><div>Alle Abweichungen gefunden. Klären Sie sie jetzt mit Frau Keller: <a href="javascript:void 0" data-act="pf-tab" data-id="chat">Zu den Rückfragen</a></div></div>` : ''}
+        <div class="knopfreihe"><button class="knopf hell" data-act="druck-pf">${icon('druck')} Prüfprotokoll drucken / als PDF</button></div></div>`;
+  }
 
-    const w = st.sa;
-    const feld = ([id, l, pflicht, typ]) => {
-      const v = esc(w[id] || ''), stern = pflicht ? ' *' : '';
-      if (typ === 'opt') return `<label class="feld"><span>${esc(l)}${stern}</span><select data-k="sa.${id}"><option value="">bitte wählen</option>${OPT[id].map(o => `<option ${w[id] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
-      if (typ === 'breit') return `<label class="feld breit"><span>${esc(l)}</span><textarea data-k="sa.${id}" rows="2" style="min-height:70px">${v}</textarea></label>`;
-      return `<label class="feld"><span>${esc(l)}${typ === 'eur' ? ' in €' : ''}${stern}</span><input data-k="sa.${id}" value="${v}" ${typ === 'eur' ? 'class="eur" inputmode="decimal"' : ''} autocomplete="off"></label>`;
-    };
-    let erg = '';
-    if (st.saGeprueft) {
-      const p = saPruefung(k);
-      erg = `<div class="karte" id="ergebnis"><h2>Systemprüfung</h2>${meldungenHtml(p.m)}
-        ${istFrei('abgleich') ? `<h2 style="margin:14px 0 8px">Systemabgleich mit den Daten der Bank</h2>${p.ab.length ? meldungenHtml(p.ab) : '<div class="hinweis ok"><div>Keine Abweichungen zwischen Selbstauskunft und Bankdaten gefunden.</div></div>'}` :
-          '<p class="klein" style="margin-top:10px">Das System prüft hier nur Vollständigkeit und Regeln. Ob die Angaben stimmen, prüfen Sie selbst anhand der Nachweise.</p>'}</div>`;
+  // Chat mit Frau Keller: freie Eingabe, Erkennung über Stichwörter
+  function chatAntwort(frage) {
+    const C = kunde().chat, c = st.chat, t = norm(frage), out = [];
+    c.verlauf.push({ von: 'b', text: frage });
+    const unz = C.unzulaessig.find(u => passt(t, u.muster));
+    if (unz) { c.unz = (c.unz || 0) + 1; c.verlauf.push({ von: 's', art: 'rot', text: unz.text }); return; }
+    const treffer = C.themen.filter(th => passt(t, th.muster));
+    const echt = treffer.filter(th => !['gruss', 'danke', 'smalltalk'].includes(th.id));
+    (echt.length ? echt : treffer).forEach(th => { out.push(th.text); if (th.kern) c.geklaert[th.id] = true; });
+    if (!out.length) {
+      c.fehl = (c.fehl || 0) + 1;
+      c.verlauf.push({ von: 'k', text: C.unklar[(c.fehl - 1) % C.unklar.length] });
+      if (c.fehl === 2) c.verlauf.push({ von: 's', text: C.tipp1 });
+      if (c.fehl === 4) c.verlauf.push({ von: 's', text: C.tipp2 });
+      return;
     }
-    return stationKopf('selbstauskunft', 'Selbstauskunft erfassen', 'Formular PK-07 · Übernehmen Sie die Angaben der Kundin aus ihrer Selbstauskunft.') + weiter('selbstauskunft') +
-      `<div class="hinweis"><div>Die eingereichte Selbstauskunft finden Sie in der <a href="#/kunde/sophie/dokumente">Kundenübersicht unter Dokumente</a>. Felder mit * sind Pflichtfelder.</div></div>
-      <div class="karte" style="margin-top:12px">${SA.map(([t, felder]) => `<div class="abschnitt">${esc(t)}</div><div class="felder">${felder.map(feld).join('')}</div>`).join('')}
-        <div class="knopfreihe"><button class="knopf" data-act="sa-pruefen">Prüfen und speichern</button><button class="knopf hell" data-act="druck-sa">${icon('druck')} Drucken / als PDF</button></div></div>${erg}
-      <div class="karte"><h2>Meine Notizen zur Station</h2><textarea data-k="saNotiz" placeholder="Was ist mir aufgefallen? Was frage ich die Kundin im Termin?">${esc(st.saNotiz || '')}</textarea></div>`;
+    out.forEach(x => c.verlauf.push({ von: 'k', text: x }));
+    const kern = C.themen.filter(th => th.kern);
+    if (!c.schluss && kern.every(th => c.geklaert[th.id])) { c.schluss = true; c.verlauf.push({ von: 'k', text: C.schluss }); c.verlauf.push({ von: 's', text: C.schlussSystem }); }
+  }
+  const chatVerlauf = k => [{ von: 'k', text: k.chat.start }].concat(st.chat.verlauf).map(m => `<div class="blase ${m.von} ${m.art || ''}">${m.von === 's' ? '<b>System:</b> ' : ''}${esc(m.text)}</div>`).join('');
+  function vChat(k) {
+    const c = st.chat, kern = k.chat.themen.filter(th => th.kern), n = kern.filter(th => c.geklaert[th.id]).length;
+    return `<div class="hinweis"><div>Fragen Sie Frau Keller nach den Abweichungen, die Sie gefunden haben. Schreiben Sie Ihre Frage in eigenen Worten, so wie Sie sie im Gespräch stellen würden.</div></div>
+      <div class="karte" style="margin-top:12px"><div class="zeile" style="padding:0 0 10px"><span class="kuerzel kunde">${k.kuerzel}</span><span class="mitte"><b>${esc(k.vorname)} ${esc(k.name)}</b><span>im Beratungsgespräch · Beratungsraum 2</span></span></div>
+        <div class="chat" id="chat">${chatVerlauf(k)}</div>
+        <form class="chatzeile" data-form="chat"><input name="frage" autocomplete="off" placeholder="Ihre Frage an Frau Keller" aria-label="Ihre Frage an Frau Keller" required><button class="knopf">Senden</button></form>
+        <p style="margin:14px 0 6px"><b>${n} von ${kern.length} Abweichungen geklärt</b></p>${balken(n, kern.length)}
+        <div class="knopfreihe"><button class="knopf hell" data-act="druck-pf">${icon('druck')} Prüfprotokoll und Gespräch drucken / als PDF</button>${c.verlauf.length ? '<button class="knopf hell klein-k" data-act="chat-neu">Gespräch neu beginnen</button>' : ''}</div></div>`;
+  }
+  function pfDruck(k) {
+    const P = k.pruefung, g = pfGefunden();
+    const tab = `<table><tr><th>Feld</th><th class="r">Angabe Kundin</th><th class="r">richtiger Wert</th><th>Nachweis</th><th>Ergebnis</th></tr>${st.pf.liste.map(e => { const b = pfBewerten(e); return `<tr><td>${esc(saLabel(e.feld))}</td><td class="r">${esc(saWert(st.sa, e.feld, 'eur'))}</td><td class="r">${esc(saWert(e, 'wert', 'eur'))}</td><td>${esc(quelleName(e.quelle))}</td><td>${b[0] === 'ok' ? '✓ richtig' : b[0] === 'info' ? 'keine Abweichung' : '✗ prüfen'}</td></tr>`; }).join('') || '<tr><td colspan="5">Noch keine Meldungen.</td></tr>'}</table>
+      <p>${Object.keys(g).length} von ${P.kern.length} Abweichungen gefunden.</p>`;
+    const gespr = st.chat.verlauf.length ? '<h2>Rückfragen an Frau Keller</h2>' + [{ von: 'k', text: k.chat.start }].concat(st.chat.verlauf).map(m => `<p><b>${m.von === 'b' ? 'Beratung' : m.von === 'k' ? 'Frau Keller' : 'System'}:</b> ${esc(m.text)}</p>`).join('') : '';
+    drucken('Selbstauskunft prüfen: Prüfprotokoll', `${k.vorname} ${k.name} · Kundennr. ${k.kundennr} · Formular PK-07`, '<h2>Abweichungen</h2>' + tab + gespr);
   }
 
   /* ------------------------------------------------------ Haushaltsrechnung */
@@ -881,6 +932,13 @@
     const fd = new FormData(e.target);
     if (f === 'anmelden') { st.kuerzel = String(fd.get('kuerzel')).trim().toUpperCase().slice(0, 4); sichern(); neu(true); }
     if (f === 'code') { meldung = codeEinloesen(fd.get('code')); neu(true); }
+    if (f === 'pf') { st.pf.liste.push({ feld: fd.get('feld'), wert: String(fd.get('wert')).trim(), quelle: fd.get('quelle') }); st.pf.ok = Object.keys(pfGefunden()).length >= kunde().pruefung.kern.length; sichern(); neu(); zumErgebnis(); }
+    if (f === 'chat') {
+      const q = String(fd.get('frage') || '').trim(); if (!q) return;
+      chatAntwort(q); sichern(); neu();
+      const box = document.getElementById('chat'); if (box) box.scrollTop = box.scrollHeight;
+      const ein = $app.querySelector('[data-form="chat"] input'); if (ein) ein.focus({ preventScroll: true });
+    }
     if (f === 'notiz') { st.notizen.push({ datum: new Date().toLocaleDateString('de-DE'), text: String(fd.get('text')).trim() }); sichern(); neu(); }
   });
   $app.addEventListener('change', e => {
@@ -980,7 +1038,11 @@
         `<h2>Entscheidung</h2><p><b>${e ? esc(e[1]) : '☐ zustimmen &nbsp; ☐ zustimmen mit Auflagen &nbsp; ☐ ablehnen &nbsp; ☐ zurück an die Kundin'}</b>${v.abgegeben ? ` · Votum abgegeben am ${esc(v.datum)}` : ' · Entwurf, noch nicht abgegeben'}</p>` +
         (v.auflagen ? notizBlock(v.auflagen, v.entscheidung === 'zurueck' ? 'Nachzureichen' : 'Auflagen') : '') + (v.abgegeben ? meldungenHtml([votumErgebnis(v)]) : ''));
     }
-    else if (a === 'sa-pruefen') { st.saGeprueft = true; sichern(); neu(); zumErgebnis(); }
+    else if (a === 'pf-tab') { st.pf.tab = el.dataset.id; sichern(); neu(true); if (st.pf.tab === 'chat') { const box = document.getElementById('chat'); if (box) box.scrollTop = box.scrollHeight; } }
+    else if (a === 'pf-nw') { st.pf.nw = el.dataset.id; sichern(); neu(); }
+    else if (a === 'pf-weg') { st.pf.liste.splice(+el.dataset.i, 1); st.pf.ok = Object.keys(pfGefunden()).length >= k.pruefung.kern.length; sichern(); neu(); }
+    else if (a === 'chat-neu') { if (confirm('Gespräch löschen und neu beginnen?')) { st.chat = LEER().chat; sichern(); neu(); } }
+    else if (a === 'druck-pf') pfDruck(k);
     else if (a === 're-pruefen') {
       const kk = D.konditionen.kredit, rk = kk.risikoklassen.find(x => x.rk === st.re.rk) || kk.risikoklassen[1];
       const tp = tilgungsplan(zahl(st.re.betrag), rund(rk.sollzins - (st.re.auto ? kk.autoAbschlag : 0)), zahl(st.re.laufzeit));
@@ -1001,7 +1063,6 @@
     else if (a === 'druck-akte') drucken('Kundenakte: Vermerke', `${k.vorname} ${k.name} · Kundennr. ${k.kundennr}`,
       `<table><tr><th>Datum</th><th>Kanal</th><th>Vermerk</th></tr>${st.notizen.slice().reverse().map(n => `<tr><td>${esc(n.datum)}</td><td>Kreditberatung (${esc(st.kuerzel)})</td><td style="white-space:pre-wrap">${esc(n.text)}</td></tr>`).join('')}
         ${k.kontakte.map(c => `<tr><td>${datum(c.datum)}</td><td>${esc(c.kanal)} · ${esc(c.wer)}</td><td>${esc(c.text)}</td></tr>`).join('')}</table>`);
-    else if (a === 'druck-sa') { const p = saPruefung(k); drucken('Selbstauskunft: Erfassung im System', `${k.vorname} ${k.name} · Kundennr. ${k.kundennr} · Formular PK-07`, saTabelle(st.sa) + '<h2>Systemprüfung</h2>' + meldungenHtml(p.m.concat(p.ab)) + notizBlock(st.saNotiz)); }
     else if (a === 'druck-tp') {
       const sp = !!el.dataset.sp, s = sp ? st.sp : st.re, kk = D.konditionen.kredit, rk = kk.risikoklassen.find(x => x.rk === s.rk) || kk.risikoklassen[1];
       const zins = rund(rk.sollzins - (s.auto ? kk.autoAbschlag : 0)), tp = tilgungsplan(zahl(s.betrag), zins, zahl(s.laufzeit));
