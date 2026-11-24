@@ -11,6 +11,7 @@ Die Schlossbank Aschaffenburg AG ist ein frei erfundenes Modellunternehmen. Alle
 - **Kreditantrag:** Selbstauskunft erfassen, Haushaltsrechnung, Kreditrechner mit Tilgungsplan
 - **Zwei Modi:** „Selbst rechnen“ (das System kontrolliert nur und gibt gestufte Hinweise) und „Beratertool“ (das System rechnet)
 - **Freischalten:** Funktionen und Nachrichten werden Stunde für Stunde per Code geöffnet
+- **Anmeldung:** frei wählbarer Benutzername plus Code. Ein Stundencode zeigt nur, was diese Stunde braucht (Stundenansicht, übrige Bereiche gesperrt). Der Übungscode öffnet alles, was bisher dran war.
 - **Drucken / als PDF:** Jede Station lässt sich als Blatt sichern
 - **Offline:** Nach dem ersten Öffnen läuft die App ohne Internet
 
@@ -33,4 +34,4 @@ Zahlen und Texte stehen in `js/daten.js` und sind dort kommentiert. Nach einer �
 
 ## Freischaltcodes
 
-In `js/daten.js` stehen nur Prüfwerte, nicht die Codes selbst. Einen Prüfwert für einen neuen Code erzeugt man in der App: mit dem Lehrkraft-Code anmelden, dann oben rechts auf das Kürzel tippen und unter „Lehrkraft“ den neuen Code eingeben.
+In `js/daten.js` stehen nur Prüfwerte, nicht die Codes selbst. Einen Prüfwert für einen neuen Code erzeugt man in der App: mit dem Lehrkraft-Code anmelden, dann oben rechts auf den Benutzernamen tippen und unter „Lehrkraft“ den neuen Code eingeben.
