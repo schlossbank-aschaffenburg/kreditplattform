@@ -275,7 +275,9 @@
         </ul></div>
         <div class="karte eng"><h2 style="padding:16px 16px 4px">Posteingang</h2><ul class="liste">${nachrichten().map(postZeile).join('')}</ul></div>
       </div>
-      <p class="klein">Weitere Bereiche der Plattform werden in den nächsten Stunden freigeschaltet.</p>`;
+      <div class="karte"><h2>Neue Stunde, neuer Code</h2>
+        <p class="klein">Weitere Bereiche werden in den nächsten Stunden freigeschaltet. Geben Sie hier den Code der neuen Stunde ein. Ihre bisherigen Ergebnisse bleiben erhalten.</p>
+        <form class="codezeile" style="margin-left:0" data-form="code"><input name="code" autocomplete="off" autocapitalize="characters" placeholder="Code" aria-label="Code"><button class="knopf">Öffnen</button></form></div>`;
   }
   function vStart() {
     const k = kunde(), post = nachrichten().slice(0, 3), a = ansicht();
