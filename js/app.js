@@ -9,11 +9,11 @@
   const D = window.SB;
   const $app = document.getElementById('app');
   const SALZ = 'schlossbank-kreditplattform:';
-  const SPEICHER = 'sb-kreditplattform-v1';
+  const SPEICHER = 'sb-kreditplattform-v2';
 
   /* ------------------------------------------------------------ Zustand */
   const LEER = () => ({
-    kuerzel: '', frei: {}, lehrkraft: false, gelesen: {}, antwort: {}, notizen: [], sa: {}, saGeprueft: false,
+    kuerzel: '', ansicht: '', frei: {}, lehrkraft: false, gelesen: {}, antwort: {}, notizen: [], sa: {}, saGeprueft: false,
     hh: { modus: 'selbst', w: {}, versuche: {}, erg: null, notiz: '' },
     re: { modus: 'selbst', versuche: 0, erg: null, notiz: '' }, sp: {},
     antrag: {}, unterlagen: {}, ak: {}, votum: {}, tr: {}, ta: {}, kk: {}, kq: {},
@@ -45,6 +45,12 @@
   const zahl0 = v => { const z = zahl(v); return isNaN(z) ? 0 : z; };
   const istFrei = f => !f || st.lehrkraft || !!st.frei[f];
   const kunde = () => D.kunden.sophie;
+  // Stundenansicht: Wer sich mit einem Stundencode anmeldet, sieht nur, was diese Stunde braucht.
+  const ansicht = () => { if (st.lehrkraft || !st.ansicht) return null; const f = D.freischaltungen.find(x => x.id === st.ansicht); return (f && f.ansicht) || null; };
+  const bereichOffen = id => { const a = ansicht(); return !a || id === 'konto' || a.bereiche.includes(id); };
+  const kundeOffen = tab => { const a = ansicht(); return !a || (a.kunde || []).includes(tab || ''); };
+  const kundeLink = () => { const a = ansicht(); return a ? '#/kunde/sophie/' + ((a.kunde || [])[0] || '') : '#/kunde/sophie'; };
+  const initialen = n => { const w = String(n || '').trim().split(/\s+/).filter(Boolean); return (w.length > 1 ? w[0][0] + w[1][0] : String(n || '').slice(0, 2)).toUpperCase(); };
 
   // SHA-256 (für die Prüfwerte der Freischaltcodes; läuft auch ohne Internet und ohne https)
   function sha256(text) {
@@ -128,17 +134,24 @@
     const ein = (D.einstiege || []).find(x => x.hash === h);
     if (ein) {
       ein.frei.forEach(x => { st.frei[x] = true; });
-      einstiegSetzen(ein.stand); sichern();
+      st.ansicht = ''; einstiegSetzen(ein.stand); sichern();
       return { ok: true, text: `${ein.titel}. Die Schritte bis dahin sind mit dem Musterstand gefüllt, Ihre abgeschlossenen Stationen bleiben erhalten.` };
     }
     const f = D.freischaltungen.find(x => x.hash === h);
     if (!f) return { ok: false, text: 'Dieser Code ist nicht gültig. Bitte prüfen Sie die Schreibweise.' };
     f.frei.forEach(x => { st.frei[x] = true; });
     if (f.fahrplan) st.frei['fahrplan' + f.fahrplan] = true;
+    st.ansicht = f.ansicht ? f.id : '';
     sichern();
     return { ok: true, text: `Freigeschaltet: ${f.titel}.` };
   }
   const fahrplanStand = () => { let s = kunde().fahrplanStand; [2, 3, 4, 5, 6].forEach(n => { if (st.frei['fahrplan' + n]) s = n; }); return s; };
+  const spaeter = t => `
+    <div class="karte sperre">${icon('schloss')}
+      <h2>${esc(t)}</h2>
+      <p class="klein">Dieser Bereich wird in einer späteren Stunde freigeschaltet.</p>
+      <div class="knopfreihe" style="justify-content:center"><a class="knopf" href="#/">Zum Arbeitsplatz</a></div>
+    </div>`;
   const sperre = (titel, text) => `
     <div class="karte sperre">${icon('schloss')}
       <h2>${esc(titel)}</h2>
@@ -213,7 +226,7 @@
   }
 
   /* ---------------------------------------------------------- Nachrichten */
-  const nachrichten = () => D.nachrichten.filter(n => istFrei(n.frei)).sort((a, b) => (b.datum + b.zeit).localeCompare(a.datum + a.zeit));
+  const nachrichten = () => D.nachrichten.filter(n => istFrei(n.frei) && (!ansicht() || (ansicht().post || []).includes(n.id))).sort((a, b) => (b.datum + b.zeit).localeCompare(a.datum + a.zeit));
   const ungelesen = () => nachrichten().filter(n => !st.gelesen[n.id]).length;
 
   /* ------------------------------------------------------------- Drucken */
@@ -232,24 +245,42 @@
   const titel = (t, u, rechts) => `<div class="titel"><div><h1>${esc(t)}</h1>${u ? `<div class="unter">${u}</div>` : ''}</div>${rechts ? `<div class="rechts">${rechts}</div>` : ''}</div>`;
   const paare = liste => `<dl class="paare">${liste.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl>`;
 
+  let anmeldeName = '';
   function vAnmeldung() {
     return `<div class="anmeldung"><form class="karte" data-form="anmelden">
       <img src="assets/logo.png" alt="Schlossbank Aschaffenburg">
       <h1>${esc(D.bank.system)}</h1>
       <p class="klein">Anmeldung für Mitarbeitende der Kreditberatung</p>
-      <label class="feld"><span>Ihr Mitarbeiterkürzel (2 bis 4 Buchstaben)</span>
-        <input name="kuerzel" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="z. B. MK" required pattern="[A-Za-zÄÖÜäöü]{2,4}"></label>
+      ${meldung ? `<div class="hinweis ${meldung.ok ? 'ok' : 'fehler'}" role="status" style="text-align:left"><div>${esc(meldung.text)}</div></div>` : ''}
+      <label class="feld"><span>Benutzername (frei wählbar)</span>
+        <input name="name" maxlength="20" autocomplete="off" placeholder="z. B. Team Nord" required minlength="2" value="${esc(anmeldeName)}"></label>
+      <label class="feld"><span>Code</span>
+        <input name="code" autocomplete="off" autocapitalize="characters" placeholder="Code von Ihrer Lehrkraft" required></label>
       <button class="knopf">Anmelden</button>
-      <p class="klein" style="margin:14px 0 0">Bitte keine echten Namen und keine echten Kundendaten eingeben. Alle Eingaben bleiben nur auf diesem Gerät.</p>
+      <p class="klein" style="margin:14px 0 0;text-align:left">Den Code für die Stunde nennt Ihnen Ihre Lehrkraft. Sie sehen dann nur, was Sie in dieser Stunde brauchen.<br>
+        Zum freien Üben gibt es einen Übungscode. Damit öffnen sich alle Bereiche, die bisher im Unterricht dran waren.</p>
+      <p class="klein" style="margin:10px 0 0">Bitte keine echten Namen und keine echten Kundendaten eingeben. Alle Eingaben bleiben nur auf diesem Gerät.</p>
       <p class="klein" style="margin:8px 0 0">${esc(D.bank.hinweis)}</p>
     </form></div>`;
   }
 
+  const fahrplanKarte = k => { const stand = fahrplanStand(); return `<div class="karte"><h2>Kreditfahrplan: ${esc(k.vorname)} ${esc(k.name)}</h2>
+        <ol class="fahrplan">${D.fahrplan.map((f, i) => `<li data-nr="${i + 1}" class="${i + 1 < stand ? 'fertig' : i + 1 === stand ? 'jetzt' : ''}">${esc(f)}</li>`).join('')}</ol></div>`; };
+  function vStartStunde(a) {
+    const k = kunde();
+    return titel('Mein Arbeitsplatz', 'Heute: ' + esc(a.titel)) + fahrplanKarte(k) + `
+      <div class="raster zwei">
+        <div class="karte eng"><h2 style="padding:16px 16px 4px">Meine Aufgaben heute</h2><ul class="liste">
+          ${a.aufgaben.map(([t, u, href], i) => `<li><a class="zeile" href="${href}"><span class="kuerzel">${i + 1}</span><span class="mitte"><b>${esc(t)}</b><span>${esc(u)}</span></span><span class="pfeil">${icon('pfeil')}</span></a></li>`).join('')}
+        </ul></div>
+        <div class="karte eng"><h2 style="padding:16px 16px 4px">Posteingang</h2><ul class="liste">${nachrichten().map(postZeile).join('')}</ul></div>
+      </div>
+      <p class="klein">Weitere Bereiche der Plattform werden in den nächsten Stunden freigeschaltet.</p>`;
+  }
   function vStart() {
-    const k = kunde(), stand = fahrplanStand(), post = nachrichten().slice(0, 3);
-    return titel('Mein Arbeitsplatz', esc(D.bank.team)) + `
-      <div class="karte"><h2>Kreditfahrplan: ${esc(k.vorname)} ${esc(k.name)}</h2>
-        <ol class="fahrplan">${D.fahrplan.map((f, i) => `<li data-nr="${i + 1}" class="${i + 1 < stand ? 'fertig' : i + 1 === stand ? 'jetzt' : ''}">${esc(f)}</li>`).join('')}</ol></div>
+    const k = kunde(), post = nachrichten().slice(0, 3), a = ansicht();
+    if (a) return vStartStunde(a);
+    return titel('Mein Arbeitsplatz', esc(D.bank.team)) + fahrplanKarte(k) + `
       <div class="raster zwei">
         <div class="karte eng"><h2 style="padding:16px 16px 4px">Meine Aufgaben</h2><ul class="liste">
           <li><a class="zeile" href="#/kunde/sophie"><span class="kuerzel kunde">${k.kuerzel}</span><span class="mitte"><b>Kreditanfrage ${esc(k.vorname)} ${esc(k.name)}</b><span>${esc(k.anliegen)}</span></span><span class="pfeil">${icon('pfeil')}</span></a></li>
@@ -273,17 +304,20 @@
   const postZeile = n => `<li><a class="zeile ${st.gelesen[n.id] ? '' : 'neu'}" href="#/post/${n.id}"><span class="kuerzel ${n.kunde ? 'kunde' : ''}">${esc(n.kuerzel)}</span>
     <span class="mitte"><b>${esc(n.betreff)}</b><span>${esc(n.von)} · ${esc(n.rolle)}</span></span><span class="rechts">${datum(n.datum)}<br>${esc(n.zeit)}</span></a></li>`;
 
-  function vPost(id) {
+  function vPost(id, anhang) {
     if (!id) return titel('Posteingang', 'Nachrichten an das Team Kreditberatung') + `<div class="karte eng"><ul class="liste">${nachrichten().map(postZeile).join('')}</ul></div>
       <p class="klein">Neue Nachrichten erscheinen, sobald Ihre Lehrkraft sie freischaltet.</p>`;
     const n = nachrichten().find(x => x.id === id);
     if (!n) return vPost();
     if (!st.gelesen[id]) { st.gelesen[id] = true; sichern(); }
+    const docs = (n.anhaenge || []).map(d => kunde().dokumente.find(x => x.id === d)).filter(Boolean);
+    if (anhang && docs.some(d => d.id === anhang)) return `<a class="zurueck" href="#/post/${id}">‹ ${esc(n.betreff)}</a>` + dokumentHtml(docs.find(d => d.id === anhang));
     return `<a class="zurueck" href="#/post">‹ Posteingang</a>
       <div class="karte"><div class="nachricht-kopf"><span class="kuerzel gross ${n.kunde ? 'kunde' : ''}">${esc(n.kuerzel)}</span>
         <div style="flex:1;min-width:0"><h2>${esc(n.betreff)}</h2><div class="klein">${esc(n.von)} · ${esc(n.rolle)}<br>${datum(n.datum)}, ${esc(n.zeit)} Uhr · An: Team Kreditberatung Privatkunden</div></div></div>
         <div class="nachricht-text">${n.text.map(p => `<p>${esc(p)}</p>`).join('')}</div>
-        ${n.kunde ? `<div class="knopfreihe"><a class="knopf hell" href="#/kunde/${n.kunde}">Kundenübersicht öffnen</a></div>` : ''}
+        ${docs.length ? `<div class="anhaenge"><div class="klein"><b>${docs.length} Anhänge</b></div>${docs.map(d => `<a class="anhang" href="#/post/${id}/${d.id}">${icon('antrag')}<span>${esc(d.titel)}</span></a>`).join('')}</div>` : ''}
+        ${n.kunde && bereichOffen('kunde') ? `<div class="knopfreihe"><a class="knopf hell" href="${kundeLink()}">${ansicht() ? 'Kontoumsätze öffnen' : 'Kundenübersicht öffnen'}</a></div>` : ''}
       </div>
       ${n.antwortbar ? `<div class="karte"><h2>Antwort verfassen</h2>
         <p class="klein">Ihre Antwort geht über das Postfach im SchlossBanking an die Kundin. Der Entwurf wird nur auf diesem Gerät gespeichert.</p>
@@ -300,9 +334,11 @@
     const kopf = `<div class="karte"><div class="kundenkopf"><span class="kuerzel kunde gross">${k.kuerzel}</span>
         <div class="daten"><h1>${esc(k.vorname)} ${esc(k.name)}</h1><div class="klein">Kundennr. ${esc(k.kundennr)} · Kundin seit ${esc(k.kundeSeit)} · Betreuung: ${esc(k.betreuung)}</div></div>
         ${statusMarke()}</div></div>
-      <nav class="reiter">${KUNDE_REITER.map(([id, t]) => `<a href="#/kunde/sophie${id ? '/' + id : ''}" class="${(tab || '') === id ? 'aktiv' : ''}">${t}</a>`).join('')}</nav>`;
+      <nav class="reiter">${KUNDE_REITER.map(([id, t]) => `<a href="#/kunde/sophie${id ? '/' + id : ''}" class="${(tab || '') === id ? 'aktiv' : ''} ${kundeOffen(id) ? '' : 'zu'}">${kundeOffen(id) ? '' : '🔒 '}${t}</a>`).join('')}</nav>`;
     let inhalt = '';
-    if (!tab) {
+    if (!kundeOffen(tab)) {
+      inhalt = spaeter((KUNDE_REITER.find(r => r[0] === (tab || '')) || ['', 'Dieser Bereich'])[1]);
+    } else if (!tab) {
       const tg = k.produkte.find(p => p.id === 'tagesgeld').saldo;
       inhalt = `<div class="raster drei"><div class="karte"><h2>Hinweise und Prüfaufträge</h2>${k.hinweise.filter(h => istFrei(h.frei) && h.art !== 'impuls').map(h => `<div class="hinweis ${h.art}"><div>${esc(h.text)}</div></div>`).join('')}
             <h2 style="margin:16px 0 8px">Vertriebsimpulse</h2>${k.hinweise.filter(h => istFrei(h.frei) && h.art === 'impuls').map(h => `<div class="hinweis ${h.art}"><div>${esc(h.text)}</div></div>`).join('')}</div>
@@ -325,7 +361,7 @@
           <form data-form="notiz"><textarea name="text" rows="4" placeholder="Was wurde besprochen? Was ist als Nächstes zu tun?" required></textarea>
           <div class="knopfreihe"><button class="knopf">Vermerk speichern</button>${st.notizen.length ? `<button type="button" class="knopf hell" data-act="druck-akte">${icon('druck')} Kundenakte drucken / als PDF</button>` : ''}</div></form></div>
         <div class="karte eng"><h2 style="padding:16px 16px 4px">Kontakthistorie</h2><ul class="liste">
-          ${st.notizen.slice().reverse().map((n, i) => `<li><div class="zeile" style="align-items:flex-start"><span class="kuerzel">${esc(st.kuerzel)}</span><span class="mitte"><b>${esc(n.datum)} · Kreditberatung</b><span style="white-space:pre-wrap">${esc(n.text)}</span></span>
+          ${st.notizen.slice().reverse().map((n, i) => `<li><div class="zeile" style="align-items:flex-start"><span class="kuerzel">${esc(initialen(st.kuerzel))}</span><span class="mitte"><b>${esc(n.datum)} · Kreditberatung</b><span style="white-space:pre-wrap">${esc(n.text)}</span></span>
             <button class="knopf hell klein-k" data-act="notiz-weg" data-i="${st.notizen.length - 1 - i}" aria-label="Vermerk löschen">Löschen</button></div></li>`).join('')}
           ${k.kontakte.map(c => `<li><div class="zeile" style="align-items:flex-start"><span class="kuerzel kunde">${esc(c.wer === 'Kundin' ? k.kuerzel : 'CS')}</span><span class="mitte"><b>${datum(c.datum)} · ${esc(c.kanal)} · ${esc(c.wer)}</b><span style="white-space:normal">${esc(c.text)}</span></span></div></li>`).join('')}
         </ul></div>`;
@@ -386,15 +422,21 @@
   function vDokument(k, id) {
     const d = k.dokumente.find(x => x.id === id && istFrei(x.frei));
     if (!d) return '<div class="karte leer">Dokument nicht gefunden.</div>';
+    return `<a class="zurueck" href="#/kunde/sophie/dokumente">‹ Dokumente</a>` + dokumentHtml(d);
+  }
+  function dokumentHtml(d) {
+    const k = kunde();
     let body = '';
     if (d.typ === 'selbstauskunft') body = `<p class="klein">Formular PK-07 · von der Kundin ausgefüllt und über das Postfach eingereicht am ${datum(d.datum)}</p>${saTabelle(k.selbstauskunft)}<p class="klein" style="margin-top:12px">Alzenau, ${datum(d.datum)} · gez. Sophie Keller</p>`;
+    else if (d.typ === 'gehalt' && d.bild) body = `<p class="klein">Kahlgrund-Klinikum Alzenau gGmbH · Abrechnung der Brutto/Netto-Bezüge · per Postfach eingereicht am ${datum(d.datum)}</p>
+      <img class="beleg" src="${esc(d.bild)}" alt="${esc(d.titel)}">`;
     else if (d.typ === 'gehalt') body = `<p class="klein">Kahlgrund-Klinikum Alzenau · Personalabteilung · vereinfachte Darstellung</p>
       <table><tr><td>Mitarbeiterin</td><td class="r">Sophie Keller, Pflegefachfrau</td></tr><tr><td>Abrechnungsmonat</td><td class="r">${esc(d.monat)}</td></tr><tr><td>Beschäftigung</td><td class="r">Vollzeit, unbefristet, Eintritt 01.09.2019</td></tr>
       <tr><td>Bruttogehalt</td><td class="r">${eur(d.brutto)}</td></tr><tr><td>Steuern und Sozialversicherung</td><td class="r">${eur(d.netto - d.brutto)}</td></tr><tr><td>Nettogehalt (fest)</td><td class="r">${eur(d.netto)}</td></tr>
       <tr><td>Zuschläge Schichtdienst (Nacht, Sonntag, Feiertag), je nach Dienstplan</td><td class="r">${eur(d.zuschlag)}</td></tr><tr class="summe"><td>Auszahlungsbetrag</td><td class="r">${eur(d.netto + d.zuschlag)}</td></tr></table>`;
     else body = d.text.map(p => `<p>${esc(p)}</p>`).join('');
     st._druckDok = { titel: d.titel, html: body };
-    return `<a class="zurueck" href="#/kunde/sophie/dokumente">‹ Dokumente</a><div class="papier"><h2>${esc(d.titel)}</h2>${body}</div>
+    return `<div class="papier"><h2>${esc(d.titel)}</h2>${body}</div>
       <div class="knopfreihe"><button class="knopf hell" data-act="druck-dok">${icon('druck')} Drucken / als PDF</button></div>`;
   }
 
@@ -403,7 +445,7 @@
     const a = Object.assign({}, k.auskunftei, fassung || {});
     return `<div class="papier"><h2>Auskunft über ${esc(k.vorname)} ${esc(k.name)}</h2>
       <p class="klein">Auskunftei (Muster) · Abfrage vom ${datum(a.abfrage)}${a.von ? ` durch ${esc(a.von)}` : ''} · Anlass: ${esc(a.grund)} · Im echten Bankbetrieb liefert diese Auskunft die SCHUFA.</p>
-      <div class="kacheln" style="margin:12px 0"><div class="kachel"><b>${esc(a.scorewert)}</b><span>Scorewert · ${esc(a.skala)}</span></div></div>
+      ${a.ohneScore ? '' : `<div class="kacheln" style="margin:12px 0"><div class="kachel"><b>${esc(a.scorewert)}</b><span>Scorewert · ${esc(a.skala)}</span></div></div>`}
       <h3 style="margin:14px 0 6px">Gespeicherte Verträge</h3>
       <div class="tabelle-wrap"><table><tr><th>Art</th><th>Vertragspartner</th><th>seit</th><th>Angaben</th><th>Zahlungsverhalten</th></tr>${a.eintraege.map(e => `<tr>${e.map(x => `<td>${esc(x || '–')}</td>`).join('')}</tr>`).join('')}</table></div>
       <h3 style="margin:14px 0 6px">Anfragen der letzten 12 Monate</h3>
@@ -609,13 +651,14 @@
         <div class="chat" id="chat">${chatVerlauf(k)}</div>
         <form class="chatzeile" data-form="chat"><input name="frage" autocomplete="off" placeholder="Ihre Frage an Frau Keller" aria-label="Ihre Frage an Frau Keller" required><button class="knopf">Senden</button></form>
         <p style="margin:14px 0 6px"><b>${n} von ${kern.length} Abweichungen geklärt</b></p>${balken(n, kern.length)}
-        <div class="knopfreihe"><button class="knopf hell" data-act="druck-pf">${icon('druck')} Prüfprotokoll und Gespräch drucken / als PDF</button>${c.verlauf.length ? '<button class="knopf hell klein-k" data-act="chat-neu">Gespräch neu beginnen</button>' : ''}</div></div>`;
+        <div class="knopfreihe"><button class="knopf hell" data-act="druck-pf">${icon('druck')} ${st.pf.liste.length ? 'Prüfprotokoll und Gespräch' : 'Gespräch'} drucken / als PDF</button>${c.verlauf.length ? '<button class="knopf hell klein-k" data-act="chat-neu">Gespräch neu beginnen</button>' : ''}</div></div>`;
   }
   function pfDruck(k) {
     const P = k.pruefung, g = pfGefunden();
     const tab = `<table><tr><th>Feld</th><th class="r">Angabe Kundin</th><th class="r">richtiger Wert</th><th>Nachweis</th><th>Ergebnis</th></tr>${st.pf.liste.map(e => { const b = pfBewerten(e); return `<tr><td>${esc(saLabel(e.feld))}</td><td class="r">${esc(saWert(st.sa, e.feld, 'eur'))}</td><td class="r">${esc(saWert(e, 'wert', 'eur'))}</td><td>${esc(quelleName(e.quelle))}</td><td>${b[0] === 'ok' ? '✓ richtig' : b[0] === 'info' ? 'keine Abweichung' : '✗ prüfen'}</td></tr>`; }).join('') || '<tr><td colspan="5">Noch keine Meldungen.</td></tr>'}</table>
       <p>${Object.keys(g).length} von ${P.kern.length} Abweichungen gefunden.</p>`;
     const gespr = st.chat.verlauf.length ? '<h2>Rückfragen an Frau Keller</h2>' + [{ von: 'k', text: k.chat.start }].concat(st.chat.verlauf).map(m => `<p><b>${m.von === 'b' ? 'Beratung' : m.von === 'k' ? 'Frau Keller' : 'System'}:</b> ${esc(m.text)}</p>`).join('') : '';
+    if (!st.pf.liste.length && gespr) return drucken('Rückfragen an Frau Keller', `${k.vorname} ${k.name} · Kundennr. ${k.kundennr} · Beratungsgespräch`, gespr);
     drucken('Selbstauskunft prüfen: Prüfprotokoll', `${k.vorname} ${k.name} · Kundennr. ${k.kundennr} · Formular PK-07`, '<h2>Abweichungen</h2>' + tab + gespr);
   }
 
@@ -863,11 +906,11 @@
 
   /* -------------------------------------------------- Lehrkraft, Einstellungen */
   function vKonto() {
-    return titel('Mein Gerät', `Angemeldet als ${esc(st.kuerzel)}`) + `
+    return titel('Mein Gerät', `Angemeldet als ${esc(st.kuerzel)}`) + (ansicht() ? '' : `
       <div class="karte"><h2>Freigeschaltete Funktionen</h2>${D.freischaltungen.map(f => `<div class="zeile" style="padding:8px 0;min-height:0"><span class="mitte"><b>${esc(f.titel)}</b></span>${f.frei.every(x => istFrei(x)) ? '<span class="marke gruen">offen</span>' : '<span class="marke">gesperrt</span>'}</div>`).join('')}
-        <form class="codezeile" style="margin-left:0" data-form="code"><input name="code" autocomplete="off" autocapitalize="characters" placeholder="Freischaltcode" aria-label="Freischaltcode"><button class="knopf">Öffnen</button></form></div>
+        <form class="codezeile" style="margin-left:0" data-form="code"><input name="code" autocomplete="off" autocapitalize="characters" placeholder="Freischaltcode" aria-label="Freischaltcode"><button class="knopf">Öffnen</button></form></div>`) + `
       <div class="karte"><h2>Datenschutz</h2><p class="klein">Diese Plattform überträgt keine Daten. Alles, was Sie eingeben, bleibt im Browser dieses Geräts und kann von niemandem eingesehen werden, auch nicht von Ihrer Lehrkraft. Sichern Sie Ihre Ergebnisse deshalb über „Drucken / als PDF“. Geben Sie keine echten Namen oder Kundendaten ein.</p>
-        <div class="knopfreihe"><button class="knopf hell" data-act="abmelden">Kürzel ändern</button></div></div>
+        <div class="knopfreihe"><button class="knopf hell" data-act="abmelden">Abmelden</button></div></div>
       <div class="karte"><h2>Arbeitsstand sichern</h2><p class="klein">Ihr Arbeitsstand liegt nur auf diesem Gerät. Mit einer Sicherungsdatei bewahren Sie ihn auf oder nehmen ihn auf ein anderes Gerät mit. Die Datei enthält Ihre Eingaben und Freischaltungen.</p>
         <p class="klein">Tipp für iPad und iPhone: Legen Sie die Plattform über „Teilen“ und „Zum Home-Bildschirm“ ab. Sonst kann Safari die Eingaben löschen, wenn die Seite einige Tage nicht geöffnet wird.</p>
         <div class="knopfreihe"><button class="knopf" data-act="datei-speichern">Sicherungsdatei speichern</button><label class="knopf hell">Sicherungsdatei laden<input type="file" accept=".json,application/json" data-datei="1" hidden></label></div></div>
@@ -885,7 +928,11 @@
     if (!st.kuerzel) { $app.innerHTML = vAnmeldung(); return; }
     const teile = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent), [a, b, c, d] = teile;
     let inhalt, aktiv = a || 'start';
-    if (a === 'post') inhalt = vPost(b);
+    const NAMEN = { post: 'Posteingang', kunde: 'Kundin', antrag: 'Kreditantrag', rechner: 'Kreditrechner', bank: 'Unsere Bank', training: 'Training', chat: 'Rückfragen an Frau Keller' };
+    const bereich = a === 'rechner' ? 'antrag' : a;
+    if (bereich && NAMEN[a] && !bereichOffen(bereich)) { inhalt = titel(NAMEN[a]) + spaeter(NAMEN[a]); aktiv = bereich; }
+    else if (a === 'post') inhalt = vPost(b, c);
+    else if (a === 'chat') { inhalt = titel('Rückfragen an Frau Keller', 'Für Schnelle: Klären Sie die Abweichungen, die Ihre Gruppe gefunden hat.') + vChat(kunde()); aktiv = 'start'; }
     else if (a === 'kunde') inhalt = vKunde(c, d);
     else if (a === 'antrag') inhalt = vAntrag(c);
     else if (a === 'bank') inhalt = vBank(b, c);
@@ -894,18 +941,19 @@
     else if (a === 'konto') { inhalt = vKonto(); aktiv = ''; }
     else { inhalt = vStart(); aktiv = 'start'; }
     const u = ungelesen();
-    const nav = [['start', '#/', 'Arbeitsplatz', 'start'], ['post', '#/post', 'Posteingang', 'post'], ['kunde', '#/kunde/sophie', 'Kundin', 'kunde'], ['antrag', '#/antrag/sophie', 'Kreditantrag', 'antrag'], ['bank', '#/bank', 'Unsere Bank', 'bank'], ['training', '#/training', 'Training', 'training']];
+    const nav = [['start', '#/', 'Arbeitsplatz', 'start'], ['post', '#/post', 'Posteingang', 'post'], ['kunde', kundeLink(), 'Kundin', 'kunde'], ['antrag', '#/antrag/sophie', 'Kreditantrag', 'antrag'], ['bank', '#/bank', 'Unsere Bank', 'bank'], ['training', '#/training', 'Training', 'training']];
     const fokus = behalteFokus && document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null;
     const pos = fokus ? document.activeElement.selectionStart : null;
     $app.innerHTML = `<div class="rahmen">
       <nav class="nav" aria-label="Hauptnavigation"><div class="logo"><img src="assets/logo-weiss.png" alt="Schlossbank Aschaffenburg"></div>
-        ${nav.map(([id, href, t, ic]) => `<a href="${href}" class="${aktiv === id ? 'aktiv' : ''}">${icon(ic)}<span>${t}</span>${id === 'post' && u ? `<span class="zahl">${u}</span>` : ''}</a>`).join('')}
+        ${nav.map(([id, href, t, ic]) => `<a href="${href}" class="${aktiv === id ? 'aktiv' : ''} ${bereichOffen(id) ? '' : 'zu'}">${icon(bereichOffen(id) ? ic : 'schloss')}<span>${t}</span>${id === 'post' && u ? `<span class="zahl">${u}</span>` : ''}</a>`).join('')}
         <div class="nav-fuss">${esc(D.bank.slogan)}<br>Fiktives Modellunternehmen für den Unterricht</div></nav>
       <header class="kopf"><img src="assets/logo.png" alt="Schlossbank Aschaffenburg"><div class="system"><b>${esc(D.bank.system)}</b>Kreditberatung Privatkunden</div>
-        <a class="wer" href="#/konto" style="text-decoration:none" aria-label="Mein Gerät"><span>${st.lehrkraft ? 'Lehrkraft' : 'angemeldet'}</span><span class="kuerzel">${esc(st.kuerzel)}</span></a></header>
+        <a class="wer" href="#/konto" style="text-decoration:none" aria-label="Mein Gerät"><span>${st.lehrkraft ? 'Lehrkraft' : esc(st.kuerzel)}</span><span class="kuerzel">${esc(initialen(st.kuerzel))}</span></a></header>
       <main class="inhalt">${meldung ? `<div class="hinweis ${meldung.ok ? 'ok' : 'fehler'}" style="margin-bottom:14px" role="status"><div>${esc(meldung.text)}</div></div>` : ''}${inhalt}
         <div class="fuss">${esc(D.bank.hinweis)}</div></main></div>`;
     meldung = null;
+    $app.querySelectorAll('.reiter').forEach(r => { const ak = r.querySelector('a.aktiv'); if (ak && ak.offsetLeft + ak.offsetWidth > r.clientWidth) r.scrollLeft = ak.offsetLeft - 16; });
     if (fokus) { const e = $app.querySelector(`[data-k="${fokus}"]`); if (e) { e.focus(); try { e.setSelectionRange(pos, pos); } catch (x) { /* select */ } } }
   }
   const neu = oben => { zeichnen(); if (oben) window.scrollTo(0, 0); };
@@ -930,7 +978,12 @@
   $app.addEventListener('submit', e => {
     const f = e.target.dataset.form; if (!f) return; e.preventDefault();
     const fd = new FormData(e.target);
-    if (f === 'anmelden') { st.kuerzel = String(fd.get('kuerzel')).trim().toUpperCase().slice(0, 4); sichern(); neu(true); }
+    if (f === 'anmelden') {
+      anmeldeName = String(fd.get('name') || '').trim().replace(/\s+/g, ' ').slice(0, 20);
+      meldung = codeEinloesen(fd.get('code'));
+      if (meldung.ok) { st.kuerzel = anmeldeName; meldung = null; sichern(); location.hash = '#/'; }
+      neu(true);
+    }
     if (f === 'code') { meldung = codeEinloesen(fd.get('code')); neu(true); }
     if (f === 'pf') { st.pf.liste.push({ feld: fd.get('feld'), wert: String(fd.get('wert')).trim(), quelle: fd.get('quelle') }); st.pf.ok = Object.keys(pfGefunden()).length >= kunde().pruefung.kern.length; sichern(); neu(); zumErgebnis(); }
     if (f === 'chat') {
@@ -961,7 +1014,7 @@
     const kopie = JSON.parse(JSON.stringify(st)); kopie.lehrkraft = false;
     Object.keys(kopie).filter(x => x[0] === '_').forEach(x => delete kopie[x]);
     const text = JSON.stringify({ app: 'schlossbank-kreditplattform', version: D.version, gesichert: new Date().toISOString(), stand: kopie });
-    const name = `Kreditplattform_${st.kuerzel}_${new Date().toISOString().slice(0, 10)}.json`;
+    const name = `Kreditplattform_${st.kuerzel.replace(/[^A-Za-z0-9ÄÖÜäöüß-]/g, '')}_${new Date().toISOString().slice(0, 10)}.json`;
     let datei; try { datei = new File([text], name, { type: 'application/json' }); } catch (x) { datei = null; }
     // Auf iPad und iPhone über das Teilen-Menü (z. B. „In Dateien sichern“), sonst als Download
     if (datei && navigator.maxTouchPoints > 1 && navigator.canShare && navigator.canShare({ files: [datei] })) { navigator.share({ files: [datei], title: name }).catch(() => { /* abgebrochen */ }); return; }
@@ -1050,7 +1103,7 @@
       st.re.erg = { ok }; sichern(); neu(); zumErgebnis();
     }
     else if (a === 'notiz-weg') { if (confirm('Diesen Vermerk löschen?')) { st.notizen.splice(+el.dataset.i, 1); sichern(); neu(); } }
-    else if (a === 'abmelden') { st.kuerzel = ''; sichern(); location.hash = '#/'; neu(true); }
+    else if (a === 'abmelden') { st.kuerzel = ''; st.ansicht = ''; sichern(); location.hash = '#/'; neu(true); }
     else if (a === 'reset') { if (confirm('Abmelden und Gerät freigeben? Alle Eingaben und Freischaltungen auf diesem Gerät werden gelöscht.')) { st = LEER(); sichern(); location.hash = '#/'; neu(true); } }
     else if (a === 'lk-aus') { st.lehrkraft = false; sichern(); neu(); }
     else if (a === 'alles-zu') { st.frei = {}; st.lehrkraft = false; sichern(); neu(); }

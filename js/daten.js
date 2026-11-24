@@ -14,7 +14,7 @@
 
 window.SB = {
 
-  version: '1.3.0',
+  version: '1.4.0',
   heute: '2026-11-11',            // „Systemdatum“ der Bank (Stand der Daten)
 
   /* ---------------------------------------------------------------- BANK */
@@ -218,9 +218,26 @@ window.SB = {
      Jede Freischaltung hat einen Code. Hier steht nicht der Code selbst,
      sondern nur sein Prüfwert (hash), damit niemand die Codes nachlesen kann.
      Neue Prüfwerte erzeugt man in der App unter „Lehrkraft“.
-     „frei“ nennt die Funktionen, die der Code öffnet.                       */
+     „frei“ nennt die Funktionen, die der Code öffnet.
+     „ansicht“ (Stundenansicht): Wer sich mit diesem Code anmeldet, sieht nur
+     diese Bereiche, Nachrichten und Kunden-Reiter. Alles andere ist gesperrt.
+     Der Übungszugang hat keine „ansicht“ und zeigt alles, was bisher dran war:
+     bei jeder neuen Stunde seine „frei“-Liste erweitern.                     */
   freischaltungen: [
     { id: 'termin',    titel: 'Beratungstermin und Selbstauskunft', hash: 'b77ee32889572822e3edea6593d0b45930637fd5d67e86d35adab5cbfde0d0fb',
+      frei: ['selbstauskunft', 'dokumente', 'umsaetze', 'post-termin'],
+      ansicht: {
+        titel: 'Kreditantrag und Selbstauskunft',
+        bereiche: ['start', 'post', 'kunde', 'chat'],
+        post: ['unterlagen'],
+        kunde: ['konten'],
+        aufgaben: [
+          ['Mail von Frau Keller lesen', 'Ihre Unterlagen hat sie vorab geschickt.', '#/post/unterlagen'],
+          ['Kontoumsätze prüfen', 'Girokonto von Frau Keller, August bis November', '#/kunde/sophie/konten'],
+          ['Für Schnelle: Rückfragen an Frau Keller', 'Klären Sie die Abweichungen im Gespräch.', '#/chat']
+        ]
+      } },
+    { id: 'ueben',     titel: 'Übungszugang (alles bis zur aktuellen Stunde)', hash: '523a6673c8a11c144fd36aac614b91aa8b80dfd82ef68c958abb2e51562013f3',
       frei: ['selbstauskunft', 'dokumente', 'umsaetze', 'post-termin'] },
     { id: 'auskunft',  titel: 'Auskunftei-Abfrage', hash: '802e354678a19fd6bd5f5fe77f8b5c3a2d20cccb5b15ecd56237944400590280',
       frei: ['auskunftei', 'post-auskunft'], fahrplan: 2 },
@@ -306,19 +323,20 @@ window.SB = {
       text: [
         'Hallo,',
         'der Termin mit Frau Keller steht: Mittwoch, 25.11.2026, 16:00 Uhr, Hauptstelle, Beratungsraum 2.',
-        'Ich habe im Kreditantrag die Station „Selbstauskunft prüfen“ für Sie geöffnet. Dort liegen alle Nachweise: die Gehaltsabrechnungen, die Kontoumsätze und die SCHUFA-Auskunft, die Herr Lindner aus der Kreditsachbearbeitung gestern abgerufen hat.',
-        'Ihre Selbstauskunft bringt Frau Keller ausgefüllt zum Termin mit.',
+        'Frau Keller schickt ihre Selbstauskunft und die letzten drei Gehaltsabrechnungen vorab über das Postfach. Die Kontoumsätze sehen Sie in der Kundenübersicht.',
+        'Die SCHUFA-Auskunft ruft Herr Lindner aus der Kreditsachbearbeitung morgen ab und legt sie ausgedruckt in die Kundenmappe.',
         'Viele Grüße',
         'Melanie Sauer'
       ]
     },
     {
       id: 'unterlagen', frei: 'post-termin', von: 'Sophie Keller', rolle: 'Kundin · Postfach SchlossBanking', kuerzel: 'SK', kunde: 'sophie',
-      datum: '2026-11-24', zeit: '19:20', betreff: 'Unterlagen für morgen',
+      datum: '2026-11-24', zeit: '19:20', betreff: 'Meine Unterlagen vorab',
+      anhaenge: ['sa', 'g08', 'g09', 'g10'],
       text: [
         'Hallo,',
-        'vielen Dank für die schnelle Antwort! Meine letzten drei Gehaltsabrechnungen habe ich hochgeladen. Die Selbstauskunft habe ich ausgefüllt und bringe sie morgen zusammen mit dem Mietvertrag und meinem Ausweis mit.',
-        'Bei manchen Feldern war ich mir nicht sicher. Die Wohnung teile ich mir mit meinem Freund Paul, wir zahlen die Miete je zur Hälfte. Verheiratet sind wir nicht.',
+        'vielen Dank für die schnelle Antwort! Damit wir morgen im Gespräch Zeit sparen, schicke ich Ihnen meine Unterlagen schon vorab: die ausgefüllte Selbstauskunft und meine letzten drei Gehaltsabrechnungen. Mietvertrag und Ausweis bringe ich morgen mit.',
+        'Bei manchen Feldern war ich mir nicht sicher. Die Wohnung teile ich mir mit meinem Freund Paul, wir zahlen die Miete je zur Hälfte.',
         'Bis morgen um 16 Uhr!',
         'Sophie Keller'
       ]
@@ -408,11 +426,11 @@ window.SB = {
       dokumente: [
         { id: 'sa', frei: 'dokumente', titel: 'Selbstauskunft PK-07 (eingereicht)', datum: '2026-11-24', typ: 'selbstauskunft' },
         { id: 'g10', frei: 'dokumente', titel: 'Gehaltsabrechnung Oktober 2026', datum: '2026-11-24', typ: 'gehalt',
-          monat: 'Oktober 2026', brutto: 3540.00, netto: 2250.00, zuschlag: 220.00 },
+          monat: 'Oktober 2026', bild: 'assets/belege/gehalt-2026-10.png', brutto: 3540.00, netto: 2250.00, zuschlag: 220.00 },
         { id: 'g09', frei: 'dokumente', titel: 'Gehaltsabrechnung September 2026', datum: '2026-11-24', typ: 'gehalt',
-          monat: 'September 2026', brutto: 3540.00, netto: 2250.00, zuschlag: 310.00 },
+          monat: 'September 2026', bild: 'assets/belege/gehalt-2026-09.png', brutto: 3540.00, netto: 2250.00, zuschlag: 310.00 },
         { id: 'g08', frei: 'dokumente', titel: 'Gehaltsabrechnung August 2026', datum: '2026-11-24', typ: 'gehalt',
-          monat: 'August 2026', brutto: 3540.00, netto: 2250.00, zuschlag: 180.00 },
+          monat: 'August 2026', bild: 'assets/belege/gehalt-2026-08.png', brutto: 3540.00, netto: 2250.00, zuschlag: 180.00 },
         { id: 'legi', titel: 'Legitimationsprüfung Personalausweis', datum: '2019-09-02', typ: 'text',
           text: ['Personalausweis im Original vorgelegt und geprüft. Identität bestätigt.', 'Filiale Alzenau, C. Seidel'] }
       ],
@@ -537,7 +555,7 @@ window.SB = {
           ['01.12.2026', 'Schlossbank Aschaffenburg AG', 'Anfrage Kreditkonditionen']
         ],
         // Fassung für die Station „Selbstauskunft prüfen“ (Std04): von der Kreditsachbearbeitung abgerufen
-        nachweis: { abfrage: '2026-11-24', von: 'Erik Lindner, Kreditsachbearbeitung',
+        nachweis: { abfrage: '2026-11-24', von: 'Erik Lindner, Kreditsachbearbeitung', ohneScore: true,
           anfragen: [['24.11.2026', 'Schlossbank Aschaffenburg AG', 'Anfrage Kreditkonditionen']] }
       },
 
