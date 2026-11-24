@@ -275,8 +275,8 @@
         </ul></div>
         <div class="karte eng"><h2 style="padding:16px 16px 4px">Posteingang</h2><ul class="liste">${nachrichten().map(postZeile).join('')}</ul></div>
       </div>
-      <div class="karte"><h2>Neue Stunde, neuer Code</h2>
-        <p class="klein">Weitere Bereiche werden in den nächsten Stunden freigeschaltet. Geben Sie hier den Code der neuen Stunde ein. Ihre bisherigen Ergebnisse bleiben erhalten.</p>
+      <div class="karte"><h2>Neue Stunde oder Üben: Code eingeben</h2>
+        <p class="klein">Weitere Bereiche werden in den nächsten Stunden freigeschaltet. Geben Sie hier den Code der neuen Stunde ein oder zum freien Üben den Übungscode. Ihre bisherigen Ergebnisse bleiben erhalten.</p>
         <form class="codezeile" style="margin-left:0" data-form="code"><input name="code" autocomplete="off" autocapitalize="characters" placeholder="Code" aria-label="Code"><button class="knopf">Öffnen</button></form></div>`;
   }
   function vStart() {
@@ -296,7 +296,7 @@
           ${D.weitereKunden.map(w => `<li><div class="zeile aus"><span class="kuerzel kunde">${icon('schloss')}</span><span class="mitte"><b>${esc(w.name)}</b><span>Kundennr. ${esc(w.kundennr)} · noch nicht zugewiesen</span></span></div></li>`).join('')}
         </ul></div>
         <div class="karte"><h2>Funktion freischalten</h2>
-          <p class="klein">Neue Funktionen und Nachrichten erhalten Sie mit einem Freischaltcode von Ihrer Lehrkraft.</p>
+          <p class="klein">Neue Funktionen und Nachrichten erhalten Sie mit einem Freischaltcode von Ihrer Lehrkraft. Mit dem Code einer Stunde kehren Sie zur Stundenansicht zurück.</p>
           <form class="codezeile" style="margin-left:0" data-form="code"><input name="code" autocomplete="off" autocapitalize="characters" placeholder="Freischaltcode" aria-label="Freischaltcode"><button class="knopf">Öffnen</button></form>
           <div class="knopfreihe"><a class="knopf hell klein-k" href="#/rechner">Kreditrechner (Spielwiese)</a></div>
         </div>
