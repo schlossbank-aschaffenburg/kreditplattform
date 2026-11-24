@@ -14,7 +14,7 @@
 
 window.SB = {
 
-  version: '1.4.0',
+  version: '1.4.1',
   heute: '2026-11-11',            // „Systemdatum“ der Bank (Stand der Daten)
 
   /* ---------------------------------------------------------------- BANK */
@@ -286,6 +286,9 @@ window.SB = {
     ['ausweis', 'Personalausweis im Original geprüft'],
     ['miete', 'Mietvertrag']
   ],
+  // Der Übungscode ist bewusst öffentlich: Er steht auf der Anmeldeseite und unter „Code“.
+  // Alle anderen Codes stehen nur als Prüfwert in dieser Datei.
+  uebungscode: 'UEBEN',
   lehrkraftHash: '4bd5360ed5b01b0d0eecef612e8aefe0cdb3b8709ca9750b8da6713c0efdb188',
 
   /* ------------------------------------------------------------ POSTEINGANG

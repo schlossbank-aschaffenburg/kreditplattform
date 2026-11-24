@@ -13,7 +13,7 @@
 
   /* ------------------------------------------------------------ Zustand */
   const LEER = () => ({
-    kuerzel: '', ansicht: '', frei: {}, lehrkraft: false, gelesen: {}, antwort: {}, notizen: [], sa: {}, saGeprueft: false,
+    kuerzel: '', ansicht: '', letzteStunde: '', frei: {}, lehrkraft: false, gelesen: {}, antwort: {}, notizen: [], sa: {}, saGeprueft: false,
     hh: { modus: 'selbst', w: {}, versuche: {}, erg: null, notiz: '' },
     re: { modus: 'selbst', versuche: 0, erg: null, notiz: '' }, sp: {},
     antrag: {}, unterlagen: {}, ak: {}, votum: {}, tr: {}, ta: {}, kk: {}, kq: {},
@@ -47,7 +47,9 @@
   const kunde = () => D.kunden.sophie;
   // Stundenansicht: Wer sich mit einem Stundencode anmeldet, sieht nur, was diese Stunde braucht.
   const ansicht = () => { if (st.lehrkraft || !st.ansicht) return null; const f = D.freischaltungen.find(x => x.id === st.ansicht); return (f && f.ansicht) || null; };
-  const bereichOffen = id => { const a = ansicht(); return !a || id === 'konto' || a.bereiche.includes(id); };
+  const bereichOffen = id => { const a = ansicht(); return !a || id === 'konto' || id === 'code' || a.bereiche.includes(id); };
+  const stundeTitel = id => { const f = D.freischaltungen.find(x => x.id === id); return f && f.ansicht ? f.ansicht.titel : ''; };
+  const uebungsmodus = () => !st.lehrkraft && !st.ansicht && !!stundeTitel(st.letzteStunde);
   const kundeOffen = tab => { const a = ansicht(); return !a || (a.kunde || []).includes(tab || ''); };
   const kundeLink = () => { const a = ansicht(); return a ? '#/kunde/sophie/' + ((a.kunde || [])[0] || '') : '#/kunde/sophie'; };
   const initialen = n => { const w = String(n || '').trim().split(/\s+/).filter(Boolean); return (w.length > 1 ? w[0][0] + w[1][0] : String(n || '').slice(0, 2)).toUpperCase(); };
@@ -90,7 +92,7 @@
     bank: '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
     schloss: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
     training: '<path d="M12 4l9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.2 2.2 2.5 5 2.5s5-1.3 5-2.5v-4.5"/>',
-    pfeil: '<path d="M9 6l6 6-6 6"/>', druck: '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>'
+    pfeil: '<path d="M9 6l6 6-6 6"/>', code: '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/>', druck: '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>'
   };
   const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 
@@ -142,6 +144,7 @@
     f.frei.forEach(x => { st.frei[x] = true; });
     if (f.fahrplan) st.frei['fahrplan' + f.fahrplan] = true;
     st.ansicht = f.ansicht ? f.id : '';
+    if (f.ansicht) st.letzteStunde = f.id;
     sichern();
     return { ok: true, text: `Freigeschaltet: ${f.titel}.` };
   }
@@ -258,7 +261,7 @@
         <input name="code" autocomplete="off" autocapitalize="characters" placeholder="Code von Ihrer Lehrkraft" required></label>
       <button class="knopf">Anmelden</button>
       <p class="klein" style="margin:14px 0 0;text-align:left">Den Code für die Stunde nennt Ihnen Ihre Lehrkraft. Sie sehen dann nur, was Sie in dieser Stunde brauchen.<br>
-        Zum freien Üben gibt es einen Übungscode. Damit öffnen sich alle Bereiche, die bisher im Unterricht dran waren.</p>
+        Zum freien Üben: Code <b>${esc(D.uebungscode)}</b>. Damit öffnen sich alle Bereiche, die bisher im Unterricht dran waren.</p>
       <p class="klein" style="margin:10px 0 0">Bitte keine echten Namen und keine echten Kundendaten eingeben. Alle Eingaben bleiben nur auf diesem Gerät.</p>
       <p class="klein" style="margin:8px 0 0">${esc(D.bank.hinweis)}</p>
     </form></div>`;
@@ -275,9 +278,18 @@
         </ul></div>
         <div class="karte eng"><h2 style="padding:16px 16px 4px">Posteingang</h2><ul class="liste">${nachrichten().map(postZeile).join('')}</ul></div>
       </div>
-      <div class="karte"><h2>Neue Stunde oder Üben: Code eingeben</h2>
-        <p class="klein">Weitere Bereiche werden in den nächsten Stunden freigeschaltet. Geben Sie hier den Code der neuen Stunde ein oder zum freien Üben den Übungscode. Ihre bisherigen Ergebnisse bleiben erhalten.</p>
-        <form class="codezeile" style="margin-left:0" data-form="code"><input name="code" autocomplete="off" autocapitalize="characters" placeholder="Code" aria-label="Code"><button class="knopf">Öffnen</button></form></div>`;
+      <p class="klein">Neue Stunde oder Üben? Den Code geben Sie im Menü <a href="#/code">„Code“</a> ein.</p>`;
+  }
+  function vCode() {
+    const a = ansicht();
+    return titel('Code eingeben', a ? 'Sie sind im Unterricht: ' + esc(a.titel) : uebungsmodus() ? 'Sie sind im Übungsmodus' : '') + `
+      <div class="karte"><h2>Neuer Code</h2>
+        <p class="klein">Den Code für die Stunde nennt Ihnen Ihre Lehrkraft. Ihre bisherigen Ergebnisse bleiben erhalten.</p>
+        <form class="codezeile" style="margin-left:0" data-form="code"><input name="code" autocomplete="off" autocapitalize="characters" placeholder="Code" aria-label="Code"><button class="knopf">Öffnen</button></form></div>
+      ${uebungsmodus() ? '' : `<div class="karte"><h2>Freies Üben</h2><p class="klein">Übungscode: <b>${esc(D.uebungscode)}</b>. Im Übungsmodus sehen Sie alles, was bisher im Unterricht dran war. Zurück zum Unterricht kommen Sie jederzeit über diesen Menüpunkt oder den Knopf oben.</p>
+        <div class="knopfreihe"><button class="knopf hell" data-act="ueben">Übungsmodus öffnen</button></div></div>`}
+      ${uebungsmodus() ? `<div class="karte"><h2>Zurück zum Unterricht</h2><p class="klein">Zurück zur Ansicht der Stunde „${esc(stundeTitel(st.letzteStunde))}“. Es wird nichts gelöscht.</p>
+        <div class="knopfreihe"><button class="knopf" data-act="zur-stunde">Zurück zum Unterricht</button></div></div>` : ''}`;
   }
   function vStart() {
     const k = kunde(), post = nachrichten().slice(0, 3), a = ansicht();
@@ -933,6 +945,7 @@
     const NAMEN = { post: 'Posteingang', kunde: 'Kundin', antrag: 'Kreditantrag', rechner: 'Kreditrechner', bank: 'Unsere Bank', training: 'Training', chat: 'Rückfragen an Frau Keller' };
     const bereich = a === 'rechner' ? 'antrag' : a;
     if (bereich && NAMEN[a] && !bereichOffen(bereich)) { inhalt = titel(NAMEN[a]) + spaeter(NAMEN[a]); aktiv = bereich; }
+    else if (a === 'code') inhalt = vCode();
     else if (a === 'post') inhalt = vPost(b, c);
     else if (a === 'chat') { inhalt = titel('Rückfragen an Frau Keller', 'Für Schnelle: Klären Sie die Abweichungen, die Ihre Gruppe gefunden hat.') + vChat(kunde()); aktiv = 'start'; }
     else if (a === 'kunde') inhalt = vKunde(c, d);
@@ -943,7 +956,7 @@
     else if (a === 'konto') { inhalt = vKonto(); aktiv = ''; }
     else { inhalt = vStart(); aktiv = 'start'; }
     const u = ungelesen();
-    const nav = [['start', '#/', 'Arbeitsplatz', 'start'], ['post', '#/post', 'Posteingang', 'post'], ['kunde', kundeLink(), 'Kundin', 'kunde'], ['antrag', '#/antrag/sophie', 'Kreditantrag', 'antrag'], ['bank', '#/bank', 'Unsere Bank', 'bank'], ['training', '#/training', 'Training', 'training']];
+    const nav = [['start', '#/', 'Arbeitsplatz', 'start'], ['post', '#/post', 'Posteingang', 'post'], ['kunde', kundeLink(), 'Kundin', 'kunde'], ['antrag', '#/antrag/sophie', 'Kreditantrag', 'antrag'], ['bank', '#/bank', 'Unsere Bank', 'bank'], ['training', '#/training', 'Training', 'training'], ['code', '#/code', 'Code', 'code']];
     const fokus = behalteFokus && document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null;
     const pos = fokus ? document.activeElement.selectionStart : null;
     $app.innerHTML = `<div class="rahmen">
@@ -952,7 +965,7 @@
         <div class="nav-fuss">${esc(D.bank.slogan)}<br>Fiktives Modellunternehmen für den Unterricht</div></nav>
       <header class="kopf"><img src="assets/logo.png" alt="Schlossbank Aschaffenburg"><div class="system"><b>${esc(D.bank.system)}</b>Kreditberatung Privatkunden</div>
         <a class="wer" href="#/konto" style="text-decoration:none" aria-label="Mein Gerät"><span>${st.lehrkraft ? 'Lehrkraft' : esc(st.kuerzel)}</span><span class="kuerzel">${esc(initialen(st.kuerzel))}</span></a></header>
-      <main class="inhalt">${meldung ? `<div class="hinweis ${meldung.ok ? 'ok' : 'fehler'}" style="margin-bottom:14px" role="status"><div>${esc(meldung.text)}</div></div>` : ''}${inhalt}
+      <main class="inhalt">${uebungsmodus() ? `<div class="modus"><span><b>Übungsmodus:</b> Sie sehen alles, was bisher dran war.</span><button class="knopf klein-k" data-act="zur-stunde">‹ Zurück zum Unterricht</button></div>` : ''}${meldung ? `<div class="hinweis ${meldung.ok ? 'ok' : 'fehler'}" style="margin-bottom:14px" role="status"><div>${esc(meldung.text)}</div></div>` : ''}${inhalt}
         <div class="fuss">${esc(D.bank.hinweis)}</div></main></div>`;
     meldung = null;
     $app.querySelectorAll('.reiter').forEach(r => { const ak = r.querySelector('a.aktiv'); if (ak && ak.offsetLeft + ak.offsetWidth > r.clientWidth) r.scrollLeft = ak.offsetLeft - 16; });
@@ -986,7 +999,7 @@
       if (meldung.ok) { st.kuerzel = anmeldeName; meldung = null; sichern(); location.hash = '#/'; }
       neu(true);
     }
-    if (f === 'code') { meldung = codeEinloesen(fd.get('code')); neu(true); }
+    if (f === 'code') { meldung = codeEinloesen(fd.get('code')); if (meldung.ok && location.hash.startsWith('#/code')) location.hash = '#/'; neu(true); }
     if (f === 'pf') { st.pf.liste.push({ feld: fd.get('feld'), wert: String(fd.get('wert')).trim(), quelle: fd.get('quelle') }); st.pf.ok = Object.keys(pfGefunden()).length >= kunde().pruefung.kern.length; sichern(); neu(); zumErgebnis(); }
     if (f === 'chat') {
       const q = String(fd.get('frage') || '').trim(); if (!q) return;
@@ -1105,6 +1118,8 @@
       st.re.erg = { ok }; sichern(); neu(); zumErgebnis();
     }
     else if (a === 'notiz-weg') { if (confirm('Diesen Vermerk löschen?')) { st.notizen.splice(+el.dataset.i, 1); sichern(); neu(); } }
+    else if (a === 'ueben') { meldung = codeEinloesen(D.uebungscode); location.hash = '#/'; neu(true); }
+    else if (a === 'zur-stunde') { st.ansicht = st.letzteStunde; sichern(); meldung = { ok: true, text: 'Zurück im Unterricht: ' + stundeTitel(st.ansicht) + '.' }; location.hash = '#/'; neu(true); }
     else if (a === 'abmelden') { st.kuerzel = ''; st.ansicht = ''; sichern(); location.hash = '#/'; neu(true); }
     else if (a === 'reset') { if (confirm('Abmelden und Gerät freigeben? Alle Eingaben und Freischaltungen auf diesem Gerät werden gelöscht.')) { st = LEER(); sichern(); location.hash = '#/'; neu(true); } }
     else if (a === 'lk-aus') { st.lehrkraft = false; sichern(); neu(); }
