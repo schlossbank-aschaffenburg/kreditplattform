@@ -386,7 +386,7 @@
         (istFrei('dokumente') ? '' : '<p class="klein">Weitere Unterlagen erscheinen hier, sobald die Kundin sie einreicht.</p>');
     } else if (tab === 'auskunftei') {
       inhalt = !istFrei('auskunftei') ? sperre('Auskunftei anfragen', 'Die Auskunftei-Abfrage ist für Sie noch nicht freigeschaltet. Sie darf erst gestellt werden, wenn ein Kreditantrag vorliegt.')
-        : !st.ak.abgerufen ? `<div class="karte sperre">${icon('antrag')}<h2>Noch keine Auskunft abgerufen</h2><p class="klein">Eine Auskunft wird im Kreditantrag in der Station „Auskunftei“ abgerufen und erscheint danach hier.</p>
+        : !st.ak.abgerufen && !(ansicht() && ansicht().auskunftDirekt) ? `<div class="karte sperre">${icon('antrag')}<h2>Noch keine Auskunft abgerufen</h2><p class="klein">Eine Auskunft wird im Kreditantrag in der Station „Auskunftei“ abgerufen und erscheint danach hier.</p>
             <div class="knopfreihe" style="justify-content:center"><a class="knopf" href="#/antrag/sophie/auskunftei">Zum Kreditantrag</a></div></div>`
         : auskunftHtml(k);
     } else if (tab === 'scoring') {

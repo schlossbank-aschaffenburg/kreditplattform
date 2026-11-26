@@ -14,7 +14,7 @@
 
 window.SB = {
 
-  version: '1.4.1',
+  version: '1.4.2',
   heute: '2026-11-11',            // „Systemdatum“ der Bank (Stand der Daten)
 
   /* ---------------------------------------------------------------- BANK */
@@ -238,9 +238,20 @@ window.SB = {
         ]
       } },
     { id: 'ueben',     titel: 'Übungszugang (alles bis zur aktuellen Stunde)', hash: '523a6673c8a11c144fd36aac614b91aa8b80dfd82ef68c958abb2e51562013f3',
-      frei: ['selbstauskunft', 'dokumente', 'umsaetze', 'post-termin'] },
+      frei: ['selbstauskunft', 'dokumente', 'umsaetze', 'post-termin', 'auskunftei', 'post-auskunft'] },
     { id: 'auskunft',  titel: 'Auskunftei-Abfrage', hash: '802e354678a19fd6bd5f5fe77f8b5c3a2d20cccb5b15ecd56237944400590280',
-      frei: ['auskunftei', 'post-auskunft'], fahrplan: 2 },
+      frei: ['auskunftei', 'post-auskunft'], fahrplan: 2,
+      ansicht: {
+        titel: 'SCHUFA-Auskunft',
+        auskunftDirekt: true, // Std05: Auskunft liegt schon vor (Lindner hat sie abgerufen), kein Kreditantrag nötig
+        bereiche: ['start', 'post', 'kunde'],
+        post: ['sprachnachricht', 'recht'],
+        kunde: ['auskunftei'],
+        aufgaben: [
+          ['Auskunft von Frau Keller ansehen', 'Stimmt Ihr nachgerechneter Score?', '#/kunde/sophie/auskunftei'],
+          ['Sprachnachricht von Frau Keller', 'Was antworten Sie ihr?', '#/post/sprachnachricht']
+        ]
+      } },
     { id: 'haushalt',  titel: 'Haushaltsrechnung (selbst rechnen)', hash: '37e3e2ab6ce330cbcae7b4c574e3de0c1677e1c469877fafb648413a204f519b',
       frei: ['haushalt'], fahrplan: 2 },
     { id: 'haushalt2', titel: 'Haushaltsrechnung (Beratertool und Systemabgleich)', hash: '309502d6a248de98f07a259d28906c712ffc5af118eaf02f104125103884e2af',
@@ -546,16 +557,19 @@ window.SB = {
          Die Auswertung ist Aufgabe der Beraterinnen und Berater.                */
       auskunftei: {
         abfrage: '2026-12-01', grund: 'Kreditanfrage (Ratenkredit)',
-        scorewert: 742, skala: 'Skala von 100 bis 999 Punkten',
+        scorewert: 685, skala: 'Skala 100 bis 999 · Klasse „akzeptabel“ (642–708)',
         eintraege: [
-          ['Girokonto', 'Schlossbank Aschaffenburg AG', '09/2019', 'Dispositionsrahmen 2.000 €', 'vertragsgemäß'],
-          ['Debitkarte', 'Schlossbank Aschaffenburg AG', '09/2019', '', 'vertragsgemäß'],
+          ['Girokonto mit Dispositionskredit', 'Schlossbank Aschaffenburg AG', '09/2019', 'Dispositionsrahmen 2.000 €', 'vertragsgemäß'],
+          ['Debitkarte (keine Kreditkarte)', 'Schlossbank Aschaffenburg AG', '09/2019', '', 'vertragsgemäß'],
           ['Mobilfunkvertrag', 'TeleMain Mobilfunk GmbH', '03/2021', '', 'vertragsgemäß'],
-          ['Ratenzahlungskonto', 'SpäterZahlen GmbH', '05/2025', 'Rahmen 1.500 €, 2 laufende Ratenpläne', 'vertragsgemäß'],
-          ['Rechnungskauf / Ratenkauf', 'KaufJetzt Pay AG', '02/2026', 'Rahmen 750 €, Saldo 0 €', 'vertragsgemäß']
+          ['Rahmenkredit (Ratenzahlungskonto)', 'SpäterZahlen GmbH', '05/2025', 'Rahmen 1.500 €', 'vertragsgemäß'],
+          ['Ratenkredit (Ratenplan 88213)', 'SpäterZahlen GmbH', '07/2026', '6 Raten à 34,90 €, Restlaufzeit 1 Monat', 'vertragsgemäß'],
+          ['Ratenkredit (Ratenplan 90455)', 'SpäterZahlen GmbH', '08/2026', '6 Raten à 25,10 €, Restlaufzeit 2 Monate', 'vertragsgemäß'],
+          ['Rahmenkredit (Rechnungs- und Ratenkauf)', 'KaufJetzt Pay AG', '02/2026', 'Rahmen 750 €, Saldo 0 €', 'vertragsgemäß']
         ],
         anfragen: [
-          ['01.12.2026', 'Schlossbank Aschaffenburg AG', 'Anfrage Kreditkonditionen']
+          ['24.11.2026', 'Schlossbank Aschaffenburg AG', 'Anfrage Kreditkonditionen'],
+          ['01.12.2026', 'Schlossbank Aschaffenburg AG', 'Anfrage Kredit (Ratenkredit)']
         ],
         // Fassung für die Station „Selbstauskunft prüfen“ (Std04): von der Kreditsachbearbeitung abgerufen
         nachweis: { abfrage: '2026-11-24', von: 'Erik Lindner, Kreditsachbearbeitung', ohneScore: true,
